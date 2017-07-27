@@ -1,3 +1,4 @@
+date_ = '2017-07-27'
 require(XLConnect)
 require(ggplot2)
 wd =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/T/current"
@@ -50,10 +51,14 @@ for(i in 1 : 5){
 
 		df = rbind(r,s)
 		ggplot(df,aes(x  = time_, y = T, col = type)) + geom_line() + facet_grid(day ~ .) + labs(title = paste("aviary",i+2))
-		ggsave(file=paste(outdir, 'aviary_',i+2,'_T.png', sep=""),width = 6, height = 9)
+		ggsave(file=paste(outdir, date_,'_aviary_',i+2,'_T.png', sep=""),width = 6, height = 9)
 		print(i)
 	}	
 
+	
+	
+	
+	
 # see and room separate
 for(i in 1 : length(f)){
 		df <- readWorksheetFromFile(f[i],  
