@@ -167,7 +167,7 @@ outdir =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/"
 	#v[v$start_==v$end_,]
 }
 
-{# visualise	
+{# visualise
 	
 	f = list.files(path=paste(wd, 'ms/', sep = ''),pattern='.TXT', recursive=TRUE,full.names=TRUE)
 	f2 = list.files(path=paste(wd, 'ms/', sep = ''),pattern='.TXT', recursive=TRUE,full.names=FALSE)
@@ -178,7 +178,7 @@ outdir =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/"
 		d$aviary = paste('w',d$aviary+3,sep='')
 		# bring datetime to real CES time
 			mi = m[m$ID == paste('ms',i, sep =''),]
-			tst = as.numeric(difftime(as.POSIXct(mi$datetime_), as.POSIXct(strptime('00:00:00 01/01/00',format="%H:%M:%S %d/%m/%y")), units = 'sec')) # difference to real CES time on the computer
+			tst = as.numeric(difftime(as.POSIXct(mi$datetime_), as.POSIXct(strptime(paste(d$time_[1], d$date_[1]),format="%H:%M:%S %d/%m/%y")), units = 'sec')) # difference to real CES time on the computer
 			d$datetime_ =as.POSIXct(strptime(paste(d$time_, d$date_),format="%H:%M:%S %d/%m/%y")) + tst
 			d$del = d$del2 = d$time_ = d$date_ = NULL  
 		# bring bird IDs
@@ -187,6 +187,7 @@ outdir =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/"
 			
 		for(j in 4:7){
 				dj = d[d$aviary == paste('w',j,sep =''),]
+				if(nrow(dj)>0){
 				dj = dj[dj$datetime_>bi$datetime_r[bi$aviary == paste('w',j,sep ='')],]
 				vj = v
 				vj$where = ifelse(vj$aviary!=paste('w',j,sep =''), 'outside',vj$where)
@@ -194,6 +195,6 @@ outdir =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/"
 				vj$top = ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
 				act_actogram(dfr = dj)
 				print(paste('w',j,sep =''))
-				}
+				}}
 		}
 }		

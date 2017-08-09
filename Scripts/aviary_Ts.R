@@ -1,4 +1,4 @@
-date_ = '2017-07-27'
+date_ = '2017-08-08'
 require(XLConnect)
 require(ggplot2)
 wd =  "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/T/current"
@@ -11,8 +11,10 @@ f2 = list.files(path=paste(wd),pattern='.xls', recursive=TRUE,full.names=FALSE)
 			#f2=f2[order(f2)]
 
 dev.new(width = 6, height = 9)
+
+av = 1 # number of aviaries
 # see and room together
-for(i in 1 : 5){
+for(i in 1 : av){ # set aviaries
 		# room 
 		df <- readWorksheetFromFile(f[i],  
 		                            sheet=1,
@@ -32,7 +34,7 @@ for(i in 1 : 5){
 		r$type = if(substring(f2[i],1,3) == 'Rui'){'room'}else{'see'}
 
 		# see
-		df <- readWorksheetFromFile(f[i+5],  
+		df <- readWorksheetFromFile(f[i+av],  
 		                            sheet=1,
 		                            startRow = 7,
 		                            endCol = 2
@@ -47,12 +49,13 @@ for(i in 1 : 5){
 		df$day = substring(df$datetime_, 1,10) 	
 		df$T = as.numeric(gsub(",", ".", df$T))	
 		s = df[!is.na(df$datetime_),]
-		s$type = if(substring(f2[i+5],1,3) == 'Rui'){'room'}else{'see'}
+		s$type = if(substring(f2[i+av],1,3) == 'Rui'){'room'}else{'see'}
 
 		df = rbind(r,s)
-		ggplot(df,aes(x  = time_, y = T, col = type)) + geom_line() + facet_grid(day ~ .) + labs(title = paste("aviary",i+2))
-		ggsave(file=paste(outdir, date_,'_aviary_',i+2,'_T.png', sep=""),width = 6, height = 9)
-		print(i)
+		avi = ifelse(av == 5, i+2, i)
+		ggplot(df,aes(x  = time_, y = T, col = type)) + geom_line() + facet_grid(day ~ .) + labs(title = paste("aviary",avi))
+		ggsave(file=paste(outdir, date_,'_aviary_',avi,'_T.png', sep=""),width = 6, height = 9)
+		print(avi)
 	}	
 
 	

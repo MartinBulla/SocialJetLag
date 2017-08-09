@@ -9,7 +9,7 @@
 	require(XLConnect)
 	}
 	{# define date
-		date_ = '2017-07-31'
+		date_ = '2017-08-07'
 	}
 	}
 {# weekly schedule bird shifts
@@ -47,9 +47,71 @@
 		s = s[order(s$week, s$treatment, s$now),]	
 		
 		s$cage = s$exp_wu = NULL
-		write.csv(s, paste(outdir,'schedule_all_weeks.csv', sep = ''),row.names = FALSE)
+		#write.csv(s, paste(outdir,'schedule_all_weeks.csv', sep = ''),row.names = FALSE)
 		s = s[which(s$week == as.POSIXct(date_)),]
 		write.csv(s, paste(outdir,'weekly_schedule_', date_,'.csv', sep = ''),row.names = FALSE)
 		#write.table(s, paste(wd,'weekly_schedulle.txt', sep = ''),sep = "\t",row.names = FALSE)
 		}
 	
+{# explore 2017-08-01 10:39:25 based on shifting/release of 50 birds	
+e = readWorksheetFromFile(paste(wd,'knot release august 2017.xlsx', sep = ''), sheet=1, endCol = 8)
+e = readWorksheetFromFile(paste(wd,'knot release august 2017_MB_suggestions.xlsx', sep = ''), sheet=1, endCol = 10)
+	d = readWorksheetFromFile(paste(wd,'birds_sex.xlsx', sep = ''), sheet=1)
+	e$sex = d$Sex[match(e$ID,d$bird_id)]
+	#d = read.table(paste(wd, 'Eva_Kim/formartin_tochoosebirds.txt', sep=''), header = TRUE, stringsAsFactors = FALSE)
+	#e$sex = d$sex[match(e$ID,d$bird_id)]	
+	s$bird_id[!s$bird_id%in%e$ID[!is.na(e$rhythm)]]
+	e$ID[!e$ID%in%s$bird_id & !is.na(e$rhythm)] # H523 included, but not part
+	
+summary(factor(e$sex))
+table(e$sex,e$to.cage.)
+summary(factor(e$to.cage.))
+table(e$Species,e$to.cage.)
+summary(factor(e$rhythm))
+table(e$rhythm,e$to.cage.)
+table(e$Age,e$to.cage.)
+table(e$Age,e$to.cage., e$Species)
+
+summary(factor(e$new))
+table(e$sex,e$new)
+table(e$Species,e$new)
+table(e$rhythm,e$new)
+table(e$Age,e$new)
+
+summary(factor(e$new2))
+table(e$sex,e$new2)
+table(e$Species,e$new2)
+table(e$rhythm,e$new2)
+table(e$Age,e$new2)
+table(e$Age,e$new2, e$Species)
+}
+{# adjusted cages
+	e = readWorksheetFromFile(paste(wd,'new_cage_distributions_2017-08-01.xlsx', sep = ''), sheet=1, endCol = 8)
+	d = readWorksheetFromFile(paste(wd,'birds_sex.xlsx', sep = ''), sheet=1)
+	e$sex = d$Sex[match(e$ID,d$bird_id)]
+	
+	wb <- loadWorkbook(paste(wd,"new_cage_distributions_2017-08-01_.xlsx",sep=''), create = TRUE)
+	#creating sheets within an Excel workbook
+	createSheet(wb, name = "plan")
+	writeWorksheet(wb,e,sheet = "plan")
+	saveWorkbook(wb)
+}
+{# new temporary schedulle
+e = readWorksheetFromFile(paste(wd,'new_cage_distributions_2017-08-01_.xlsx', sep = ''), sheet=1, endCol = 9)
+d = read.csv(paste(outdir,'weekly_schedule_', date_,'.csv', sep = ''),stringsAsFactors = FALSE)
+e$to_go = d$to_go[match(e$ID, d$bird_id)]
+e$treatment = d$treatment[match(e$ID, d$bird_id)]
+
+wb <- loadWorkbook(paste(wd,"new_cage_distributions_2017-08-01_with_T.xlsx",sep=''), create = TRUE)
+	#creating sheets within an Excel workbook
+	createSheet(wb, name = "plan")
+	writeWorksheet(wb,e,sheet = "plan")
+	saveWorkbook(wb)
+	
+d = read.csv(paste(outdir,'weekly_schedule_', date_,'.csv', sep = ''),stringsAsFactors = FALSE)
+d$to_go[nchar(d$to_go)<3] = e$new[match(d$bird_id[nchar(d$to_go)<3],e$ID)]	
+write.csv(d, paste(outdir,'weekly_schedule_', date_,'_.csv', sep = ''),row.names = FALSE)
+}
+
+
+
