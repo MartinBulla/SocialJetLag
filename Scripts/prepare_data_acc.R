@@ -2,10 +2,10 @@
 	{# define working directory
 	     #wd = "M:/Science/Projects/MC/test_data_axy4/"	
 		 #wdd=wd
-	     wd = "M:/Science/Projects/MC/Data/"	
+	     wd = "M:/Science/Projects/MC/data/"	
 	    # wd = "H:/data/"	
 		 outdir = 'C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/acc'
-	     #wd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/"	
+	     wd2 = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/"	
 	     #wdd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/accelerometer output"	
 		 #outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/visualized/"	
 	}
@@ -32,20 +32,23 @@
 }
 	}
 }
-
+ 
 {# PREPARAE DATA - odba 2017-08-07 18:35:24
-   f = list.files(path=paste(wd,'csv/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
+   f = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
 			#f=f[order(substring(f,nchar(f)-8))]
-   f2 = list.files(path=paste(wd,'csv/', sep=''),pattern='.csv', recursive=TRUE,full.names=FALSE)
+   f2 = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=FALSE)
 			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
-			#f2=f2[order(f2)]
+			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
    for(i in 1:length(f)){
-				
-	d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
-					
-	
-				#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
-				#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
+	if(substring(f2[i],1,4)=='Z526'){
+		d1 = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		d2 = fread(f[i+1],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		d = rbind(d1,d2)
+		}else{
+		d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		}
+		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
+		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
 	# per min
 	  bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z)), by = .(substring(datetime_,1,16))]
 					#bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,16))]
@@ -65,7 +68,7 @@
 	  aa$bird_ID=substring(f2[i],1,4)
 	  aa$tag=substring(f2[i],6,8)
 				
-	save(aa,bb, file=paste(wd, 'odba/',aa$bird_ID[1],'_',aa$tag[1],"_odba.Rdata",sep=""))
+	save(aa,bb, file=paste(wd2, 'odba/',aa$bird_ID[1],'_',aa$tag[1],"_odba.Rdata",sep=""))
 		rm(aa)
 		rm(bb)
 		gc()
@@ -77,6 +80,7 @@
 				#d$datetime_ = as.POSIXct(d$datetime_, format = '%Y-%m-%d %H:%M:%OS') 	
 	#op <- options(digits.secs=2)
 	#save(d, file = paste(wd,'rdata/',,aa$bird_ID[1],'_',aa$tag[1],'posix.RData',sep=''))	
+	print(f2[i])
 	}
 		
 		
