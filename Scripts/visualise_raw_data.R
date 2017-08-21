@@ -15,6 +15,7 @@
 	require(plyr)
 	require(raster)
 	require(lattice)
+	require(latticeExtra)
 	require('XLConnect')
 	require(data.table)
 	#require(bigmemory)
@@ -33,6 +34,7 @@
 		min_ = 0
 		max_ = 1
 		
+			
 		wr_col="grey50"
 		ln_col="grey80"
 				
@@ -50,6 +52,7 @@
 		group = 'grey40'
 		out_a = 'grey80'
 		
+		line24 = 'lightblue'
 		tra=rgb(1,1,1,1,maxColorValue = 1) # transparent color
 	}
 	
@@ -71,7 +74,7 @@
 			 pks <- unlist(pks)
 			 pks
 		}
-	   act_actogram2 = function(dfr, vv ,PNG = TRUE, min_=0, max_=1, line_=FALSE, res, doubleplot = TRUE) {
+	   act_actogram2 = function(dfr, vv, PNG = TRUE, min_=0, max_=1, line_=FALSE, res, doubleplot = TRUE) {
 				# dfr - data frame
 				# vv = visits data frame
 				# figCap - figure captions
@@ -98,6 +101,7 @@
 				extra$day = as.Date(extra$day  -1)
 				extra = subset(extra,extra$day >=startd)
 				dfr = rbind(dfr,extra)
+				dfr = dfr[order(dfr$day, dfr$time),]
 				
 				startvv = min(vv$day)
 				extrav = vv
@@ -105,7 +109,8 @@
 				extrav$e_ = extrav$e_+24
 				extrav$day = as.Date(extrav$day  -1)
 				extrav = subset(extrav,extrav$day >=startvv)
-				vv = rbind(extra,extrav)
+				vv = rbind(vv,extrav)
+				vv = vv[order(vv$day, vv$s_),]
 			 }
 				
 			 sl1 = unique(dfr$day)
@@ -131,8 +136,7 @@
 										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
 								#ylab_right=list('log(odba)',cex=0.7, col=wr_col,vjust=-0.3)
 			 }	
-			   panel1 = function(...) {
-								
+			 panel1 = function(...) {
 								# activity
 									dfri= dfr[which(dfr$day == sl1[panel.number()]),]
 									#dfri= dfr[which(dfr$day == sl1[1]),]
@@ -143,15 +147,15 @@
 									if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
 													}
 								# 24h line 
-								if(doubleplot == TRUE) {panel.abline(v=24,col="light grey")}					
+								if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
 								panel.xyplot(...)
 							}
 			{# key
 				clr_cap=list(text=list(c(dfr$bird_ID[1]),cex=0.6, col=c(wr_col)))	
 				clr_1=list(text = list(c("Bird's activity:",'Outdoors in group','Alone, constant light <0.5lux', paste('Group of', ifelse(substring(dfr$bird_ID[1],1,1) =='R', '2', '3'),  'constant light <0.5lux')),col=c(wr_col),cex=0.6),
 												points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,out_a, sing,group)))
-				clr_2=list(text = list(c('bird active','disturbance inside aviary', 'disturbance outside aviary'),col=c(wr_col),cex=0.6),
-												text = list(c("|","|","|"), cex=c(0.6), font="bold", col = c('black', disturb_in, disturb_out)))
+				clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary'),col=c(wr_col),cex=0.6),
+												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out)))
 					
 				{# adds buffer around legend columns by creating fake legend columns
 						clr_n=list(text = list(c("")))				
@@ -199,9 +203,10 @@
 				
 			}	
 			if(PNG == TRUE) {
-				tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res,sep=""), ".png",sep="") 
-				if(doubleplot == TRUE) {wid = 2}else{wid = 1}	
-				png(tf,width*wid = 210, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
+				if(doubleplot == TRUE) {wid = 2; doub = '_double'}else{wid = 1; doub = '_'}	
+				tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res, doub, sep=""), ".png",sep="") 
+				
+				png(tf,width = 210*wid, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
 				par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)#par(pin = c(8.26771654, 11.6929134)) 
 				print(rfidsplot)
 					#vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1)))#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 					
@@ -242,8 +247,11 @@
 }
 
 {# Visualise		
-	# obda 1 min
+	# obda 1 / 10 min
+		minu = 10 # odba per 10 or 1 min
+		
 		p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
+		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
 		for(i in 1:length(p)){
 			load(p[i])
 				#odba_actogram(dfr=aa, line_=FALSE)
@@ -265,11 +273,14 @@
 				vj = do.call(rbind,l)
 				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
 				vj$top = min_+0.25*(max_-min_)#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
-			if(bb$bird_ID[1] == 'Z682'){
-				bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
-				}else{
-				bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ		
-				}
+				vj = vj[!is.na(vj$day),]
+			if(bb$bird_ID[1] == 'Z682'){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
+			}else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
+			
+			if(minu == '10'){
+				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16))
+				bb = ddply(bb,.(datetime_, bird_ID, tag, col_), summarise, odba = sum(odba))	
+			}	
 				#densityplot(~bb$odba)
 				#densityplot(~log(bb$odba))
 				if(bb$bird_ID[1] == 'Z526'){ # cut off special for different logger attachemnt
@@ -282,14 +293,15 @@
 					
 					}else{				
 					cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[1]] # use first low as flipping point between no-activity and activity
-					#cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]] # for Z682
+					if(bb$bird_ID[1] == 'Z682'){cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]]} # for Z682
 					bb$act = ifelse(bb$odba<cut_, 0, 1)
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
 					}
 			png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
 			densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col='red')) 
 			dev.off()
-			act_actogram2(dfr = bb, vv = vj, res = ifelse(bb$bird_ID[1] == 'Z682', '1min_log-obda','1min_obda')) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			act_actogram2(dfr = bb, vv = vj, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'1min_obda', sep = '')), doubleplot = TRUE) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))
 			print(p[i])	
 			}	
 				
