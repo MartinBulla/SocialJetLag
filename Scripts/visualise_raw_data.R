@@ -71,7 +71,7 @@
 			 pks <- unlist(pks)
 			 pks
 		}
-	   act_actogram2 = function(dfr, vv ,type = "PNG", min_=0, max_=1, line_=FALSE, res) {
+	   act_actogram2 = function(dfr, vv ,PNG = TRUE, min_=0, max_=1, line_=FALSE, res, doubleplot = TRUE) {
 				# dfr - data frame
 				# vv = visits data frame
 				# figCap - figure captions
@@ -90,7 +90,24 @@
 			
  			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
 			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
-			
+			 
+			 if (doubleplot==TRUE) {
+				startd = min(dfr$day)
+				extra = dfr
+				extra$time = extra$time+24
+				extra$day = as.Date(extra$day  -1)
+				extra = subset(extra,extra$day >=startd)
+				dfr = rbind(dfr,extra)
+				
+				startvv = min(vv$day)
+				extrav = vv
+				extrav$s_ = extrav$s_+24
+				extrav$e_ = extrav$e_+24
+				extrav$day = as.Date(extrav$day  -1)
+				extrav = subset(extrav,extrav$day >=startvv)
+				vv = rbind(extra,extrav)
+			 }
+				
 			 sl1 = unique(dfr$day)
 			 sl1=sl1[order(sl1)]
 			 strip.left1 = function(which.panel, ...) {
@@ -99,15 +116,23 @@
 										ltext(0.5, 0.5, cex = 0.6, LAB, col=wr_col)
 										}
 			 ylab_=list('Date',cex=0.7, col=wr_col, vjust=1, hjust=0.5)		
-			 scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
+			 if(doubleplot == TRUE){
+				 scales1 = list(x = list(at=c(0,6,12,18,24, 30, 36, 42, 48),
+										labels=c('00:00','','12:00','','24:00','','36:00','','48:00') , cex = 0.6, tck=0.4,			      
+										limits = c(0,48),col=wr_col,col.line = ln_col, alternating=3), 
+										y = list(limits = c(min_, max_),
+										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
+										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
+			 }else{	 
+				 scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
 										limits = c(0,24),col=wr_col,col.line = ln_col, alternating=3), 
 										y = list(limits = c(min_, max_),
 										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
 										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
 								#ylab_right=list('log(odba)',cex=0.7, col=wr_col,vjust=-0.3)
-				
+			 }	
 			   panel1 = function(...) {
-							 
+								
 								# activity
 									dfri= dfr[which(dfr$day == sl1[panel.number()]),]
 									#dfri= dfr[which(dfr$day == sl1[1]),]
@@ -117,6 +142,8 @@
 									#vji = vv[which(vv$day == sl1[7]),] 
 									if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
 													}
+								# 24h line 
+								if(doubleplot == TRUE) {panel.abline(v=24,col="light grey")}					
 								panel.xyplot(...)
 							}
 			{# key
@@ -171,34 +198,25 @@
 			
 				
 			}	
-			if(type %in% c('SAVE')) {
-					save(rfidsplot,dfr, sl1, strip.left1,scales1,panel1,key1,nt, is_,ie_, act_c, ex,latlon, figCap, file=paste("C:/Users/mbulla/Documents/ownCloud/ACTOSforHTML/",paste("rfid",i,sep="_"),".Rdata",sep=""))
-					tf = paste0(outdir,pkk$act_ID[i], paste("_",pkk$pkk[i],sep=""), "_%03d.png",sep="") 
-														png(tf,width = 210, height = 57+8*length(sl1), units = "mm", res = 600)	
-									par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)
-									print(rfidsplot)
-									vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1))) # creates area for map	 	##y=0.9575 for 297mm height							
-									pushViewport(vp)
-									print(gg, newpage=FALSE) # prints the map
-									dev.off()
-				}else{if(type %in% c('PNG')) {
-									tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res,sep=""), ".png",sep="") 
-									png(tf,width = 210, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
-									par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)#par(pin = c(8.26771654, 11.6929134)) 
-									print(rfidsplot)
-									#vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1)))#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 					
-									#pushViewport(vp)
-									#print(gg, newpage=FALSE) # prints the map
-									dev.off()
-									}else{
-									#dev.new(widht=8.26771654,height=11.6929134)
-									par(pin = c(8.26771654, 11.6929134)) 
-									print(rfidsplot)
-									#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 	vp <- viewport(x=0.89,y=0.94,width=0.11*1.5, height=0.11) # creates area for map	 						
-									#pushViewport(vp)
-									#print(gg, newpage=FALSE) # prints the map
-									}}
-				}	
+			if(PNG == TRUE) {
+				tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res,sep=""), ".png",sep="") 
+				if(doubleplot == TRUE) {wid = 2}else{wid = 1}	
+				png(tf,width*wid = 210, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
+				par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)#par(pin = c(8.26771654, 11.6929134)) 
+				print(rfidsplot)
+					#vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1)))#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 					
+					#pushViewport(vp)
+					#print(gg, newpage=FALSE) # prints the map
+				dev.off()
+			}else{
+				#dev.new(widht=8.26771654,height=11.6929134)
+				par(pin = c(8.26771654, 11.6929134)) 
+				print(rfidsplot)
+				#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 	vp <- viewport(x=0.89,y=0.94,width=0.11*1.5, height=0.11) # creates area for map	 						
+				#pushViewport(vp)
+				#print(gg, newpage=FALSE) # prints the map
+			}
+	}	
 		 		
 	}
 	
