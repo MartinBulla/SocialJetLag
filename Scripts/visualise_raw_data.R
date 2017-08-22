@@ -248,11 +248,20 @@
 
 {# Visualise		
 	# obda 1 / 10 min
-		minu = 10 # odba per 10 or 1 min
+		minu = 1 # odba per 10 or 1 min
 		
 		p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
-		for(i in 1:length(p)){
+		
+		birds = unique(substring(p2,1,4))
+		
+		for(ii in 1:length(birds)){
+		  {# make one dataset
+			p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=TRUE)
+			p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=FALSE)
+			lbb = list()
+			lvj = list()
+			for(i in 1:length(p)){
 			load(p[i])
 				#odba_actogram(dfr=aa, line_=FALSE)
 			bi = b[b$bird_ID == aa$bird_ID[1] & !is.na(b$treat),]
@@ -274,16 +283,25 @@
 				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
 				vj$top = min_+0.25*(max_-min_)#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
 				vj = vj[!is.na(vj$day),]
-			if(bb$bird_ID[1] == 'Z682'){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
-			}else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
 			
-			if(minu == '10'){
+			lbb[[i]] = bb
+			lvj[[i]] = vj
+			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))	
+			}
+			bb = do.call(rbind,lbb)
+			vj = do.call(rbind,lvj)
+		   }	
+		  {# activity/non-activity
+			 if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
+			 }else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
+			
+			 if(minu == '10'){
 				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16))
 				bb = ddply(bb,.(datetime_, bird_ID, tag, col_), summarise, odba = sum(odba))	
-			}	
-				#densityplot(~bb$odba)
+			 }		  
+			#densityplot(~bb$odba)
 				#densityplot(~log(bb$odba))
-				if(bb$bird_ID[1] == 'Z526'){ # cut off special for different logger attachemnt
+			if(bb$bird_ID[1] %in% c('Z526')){ # cut off special for different logger attachemnt
 					bb1 = bb[bb$datetime_<bi$t_e[bi$treat == 'group'],]
 					cut1 = density (bb1$odba)$x[find_peaks(-density (bb1$odba)$y)[1]] # use first low as flipping point between no-activity and activity
 					bb2 = bb[bb$datetime_>bi$t_s[bi$treat == 'out_a'],]
@@ -291,21 +309,32 @@
 					bb$act = ifelse(bb$datetime_>bi$t_s[bi$treat == 'out_a'],ifelse(bb$odba<cut2, 0,1), ifelse(bb$odba<cut1, 0,1))
 					bb$col_ = ifelse(bb$datetime_>bi$t_s[bi$treat == 'out_a'],ifelse(bb$odba<cut2, NA,bb$col_), ifelse(bb$odba<cut1, NA,bb$col_))
 					
-					}else{				
+			}else{
 					cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[1]] # use first low as flipping point between no-activity and activity
 					if(bb$bird_ID[1] == 'Z682'){cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]]} # for Z682
+					if(bb$bird_ID[1] %in% c('Z546', 'Z687')){cut_ = 0.1} # for Z682
+					
 					bb$act = ifelse(bb$odba<cut_, 0, 1)
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
-					}
+			}
+			}		
+		  {# plot cut-off and actogram
+			dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
 			png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
-			densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col='red')) 
+			print(dp)
 			dev.off()
-			act_actogram2(dfr = bb, vv = vj, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'1min_obda', sep = '')), doubleplot = TRUE) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
-			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))
-			print(p[i])	
-			}	
+			act_actogram2(dfr = bb, vv = vj, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+		   }
+			
+			print(birds[ii])	
+		}	
 				
 }
+
+{# check sleept
+	bb[bb$datetime_>as.POSIXct('2017-08-17 19:44:14') & bb$datetime_<as.POSIXct('2017-08-17 19:47:16'),]
+}
+
 
 # not used yet				
 				{# 1 min

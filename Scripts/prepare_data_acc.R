@@ -68,11 +68,11 @@
 	  aa$bird_ID=substring(f2[i],1,4)
 	  aa$tag=substring(f2[i],6,8)
 				
-	save(aa,bb, file=paste(wd2, 'odba/',aa$bird_ID[1],'_',aa$tag[1],"_odba.Rdata",sep=""))
+	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],10,19),"_odba.Rdata",sep=""))
 		rm(aa)
 		rm(bb)
 		gc()
-	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'.RData',sep=''))
+	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'.RData',sep=''))
 	rm(d)
 	#rm(d)
 	#rm(list = ls(all.names = TRUE))
