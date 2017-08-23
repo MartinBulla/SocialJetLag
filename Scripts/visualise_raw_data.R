@@ -74,9 +74,10 @@
 			 pks <- unlist(pks)
 			 pks
 		}
-	   act_actogram2 = function(dfr, vv, PNG = TRUE, min_=0, max_=1, line_=FALSE, res, doubleplot = TRUE, odba_ = FALSE) {
+	   act_actogram2 = function(dfr, vv, bi_, PNG = TRUE, min_=0, max_=1, line_=FALSE, res, doubleplot = TRUE, odba_ = FALSE) {
 				# dfr - data frame
 				# vv = visits data frame
+				# bi_ = birds/treatment information
 				# figCap - figure captions
 				# latlon - latitude longitude
 				# day - panel labels as day or as day of incubation period and inc constancy
@@ -150,22 +151,21 @@
 					}
 			 }	
 			 panel1 = function(...) {
-								# activity
-									dfri= dfr[which(dfr$day == sl1[panel.number()]),]
-									#dfri= dfr[which(dfr$day == sl1[22]),]
-									panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')
-								# disturbance
-									vji = vv[which(vv$day == sl1[panel.number()]),] 
-									#vji = vv[which(vv$day == sl1[7]),] 
-									if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
+					# activity
+					 dfri= dfr[which(dfr$day == sl1[panel.number()]),]
+						#dfri= dfr[which(dfr$day == sl1[22]),]
+						panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')
+					# disturbance
+					 vji = vv[which(vv$day == sl1[panel.number()]),] 
+					 #vji = vv[which(vv$day == sl1[7]),] 
+					 if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
 													}
-								# 24h line 
-								if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
-							
-							panel.xyplot(...)
+					# 24h line 
+					 if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
+					panel.xyplot(...)
 							}
 			{# key
-				clr_cap=list(text=list(c(dfr$bird_ID[1]),cex=0.6, col=c(wr_col)))	
+				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
 				clr_1=list(text = list(c("Bird's activity:",'Outdoors in group','Alone, constant light <0.5lux', paste('Group of', ifelse(substring(dfr$bird_ID[1],1,1) =='R', '2', '3'),  'constant light <0.5lux')),col=c(wr_col),cex=0.6),
 												points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,out_a, sing,group)))
 				clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary'),col=c(wr_col),cex=0.6),
@@ -284,6 +284,159 @@
 				#print(gg, newpage=FALSE) # prints the map
 			}
 	}	 		
+	   acc_actogram = function(dfr,vv,bi_, PNG = TRUE,min_=-8, max_=1, line_=FALSE, res, doubleplot = TRUE, odba_ = 'XYZ') {
+				# dfr - data frame
+				# figCap - figure captions
+				# latlon - latitude longitude
+				# day - panel labels as day or as day of incubation period and inc constancy
+				# ins = start of incubation period
+				# inp = lenght of incubation period
+				# type = PNG -created, PDF - created, SAVE - also Rdata file saved
+				# min_/max_ - limits of y-axis in the panel
+				# UTC/UTC_met -  shall data and metadata be transformed to longitudinal time (yes = TRUE, no=FALSE) 
+				# signal - are data based on automated tracking?
+				
+		
+			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
+			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
+			 if (doubleplot==TRUE) {
+				startd = min(dfr$day)
+				extra = dfr
+				extra$time = extra$time+24
+				extra$day = as.Date(extra$day  -1)
+				extra = subset(extra,extra$day >=startd)
+				dfr = rbind(dfr,extra)
+				dfr = dfr[order(dfr$day, dfr$time),]
+				
+				startvv = min(vv$day)
+				extrav = vv
+				extrav$s_ = extrav$s_+24
+				extrav$e_ = extrav$e_+24
+				extrav$day = as.Date(extrav$day  -1)
+				extrav = subset(extrav,extrav$day >=startvv)
+				vv = rbind(vv,extrav)
+				vv = vv[order(vv$day, vv$s_),]
+			 }
+			
+			 sl1 = unique(dfr$day)
+			 sl1=sl1[order(sl1)]
+			 
+			 strip.left1 = function(which.panel, ...) {
+										LAB = format(sl1[which.panel], "%b-%d")
+										grid.rect(gp = gpar(fill = "grey95", col=ln_col))
+										ltext(0.5, 0.5, cex = 0.6, LAB, col=wr_col)
+										}
+			 ylab_=list('Date',cex=0.7, col=wr_col, vjust=1, hjust=0.5)		
+			 if(doubleplot == TRUE){
+				 scales1 = list(x = list(at=c(0,6,12,18,24, 30, 36, 42, 48),
+										labels=c('00:00','','12:00','','24:00','','36:00','','48:00') , cex = 0.6, tck=0.4,			      
+										limits = c(0,48),col=wr_col,col.line = ln_col, alternating=3), 
+										y = list(limits = c(min_, max_),
+										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
+										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
+					if(odba_ == 'XYZ'){ 				
+					  ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)
+					}else{
+					   ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)
+					}
+			 						
+			 }else{	 
+				 scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
+										limits = c(0,24),col=wr_col,col.line = ln_col, alternating=3), 
+										y = list(limits = c(min_, max_),
+										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
+										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
+					if(odba_ == 'XYZ'){ 				
+					  ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)
+					}else{
+					   ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)
+					}
+			 }		
+	     	   panel1 = function(...) {
+				 # disturbance
+					vji = vv[which(vv$day == sl1[panel.number()]),] 
+									#vji = vv[which(vv$day == sl1[7]),] 
+									if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
+													}
+				 # 24h line 
+					if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
+				 # activity			
+				 panel.xyplot(...)
+							}
+			{# key
+				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
+				clr_1=list(text = list(c('ln(odba):','X','Y','Z'),col=c(wr_col),cex=0.6),
+						points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,cv_x,cv_y, cv_z)))
+				clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary'),col=c(wr_col),cex=0.6),
+												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out)))		
+				{# adds buffer around legend columns by creating fake legend columns
+						clr_n=list(text = list(c("")))				
+					}									
+				key1 = c(  # captions
+									#clr_0,
+									clr_cap,
+									clr_n,
+								# treatment
+									clr_1,
+									clr_n,
+								# disturb
+									clr_2,
+									clr_n,
+								# ending to compensate for captions
+								#	clr_e,
+								rep=FALSE, between=0.9 #just=-0.3#, 	padding.text=1.1,#, border=ln_col #columns
+								)								
+			}
+			{# plot				
+			#dev.new(width=8.26771654, height=11.6929134)
+						
+			rfidsplot = xyplot(log(odbaX) + log(odbaY) + log(odbaZ)~ time | day, 
+									data = dfr, 
+									type='l', col = c(cv_x,cv_y, cv_z),
+									cex = 0.1, cex.title=0.5, main = NULL,
+									layout = c(1,length(sl1)),# ifelse(length(sl1) > 30, 30, length(sl1))), 
+									strip.left = strip.left1, 
+									scales = scales1,
+									panel=panel1, 
+									key=key1,
+									ylab=ylab_,
+									ylab.right=ylab_right,
+									#auto.key=TRUE,
+									xlab.top=list('Time [h]',cex=0.7,col=wr_col, vjust=1),
+									xlab=NULL,
+									par.settings=list(axis.components=list(left=list(tck=0)), layout.widths=list(right.padding=2),axis.line = list(col = ln_col)), #box.3d=list(col = wr_col)), #top=list(tck=0.4),
+									as.table=TRUE,
+									#aspect = "fill", 
+									strip = FALSE, distribute.type = TRUE,    
+									lattice.options = list(layout.widths = list(strip.left = list(x = 3)))
+									)
+			}
+
+			if(PNG == TRUE) {
+				if(doubleplot == TRUE) {wid = 2; doub = '_double'}else{wid = 1; doub = ''}
+				od = ifelse(odba_ == TRUE, '_sumodbaOnly','_XYZodbaOnly')
+				tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res, doub, od, sep=""), ".png",sep="") 
+				
+				png(tf,width = 210*wid, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
+				par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)#par(pin = c(8.26771654, 11.6929134)) 
+				print(rfidsplot)
+					#vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1)))#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 					
+					#pushViewport(vp)
+					#print(gg, newpage=FALSE) # prints the map
+				dev.off()
+			}else{
+				#dev.new(widht=8.26771654,height=11.6929134)
+				par(pin = c(8.26771654, 11.6929134)) 
+				print(rfidsplot)
+				#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 	vp <- viewport(x=0.89,y=0.94,width=0.11*1.5, height=0.11) # creates area for map	 						
+				#pushViewport(vp)
+				#print(gg, newpage=FALSE) # prints the map
+			}
+		
+
+
+}					
+	
 	}
 	
 	{# load metadata
@@ -326,6 +479,8 @@
 			p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=FALSE)
 			lbb = list()
 			lvj = list()
+			lvj = list()
+			lbi = list()
 		   for(i in 1:length(p)){
 			load(p[i])
 				#odba_actogram(dfr=aa, line_=FALSE)
@@ -352,10 +507,12 @@
 				vj = vj[!is.na(vj$day),c('day','s_','e_','top','col_')]
 				vj = rbind(vj,bi[,c('day','s_','e_','top','col_')]) # add captures
 			lbb[[i]] = bb
+			lbi[[i]] = bi
 			lvj[[i]] = vj
 			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))	
 			}
 			bb = do.call(rbind,lbb)
+			bi = do.call(rbind,lbi)
 			vj = do.call(rbind,lvj)
 		  }	
 		  {# activity/non-activity
@@ -391,10 +548,10 @@
 			png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
 			print(dp)
 			dev.off()
-			act_actogram2(dfr = bb, vv = vj, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = 'TRUE') #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			#acc_actogram(dfr = bb, vv = vj, bi_ = bi, res = paste(minu,'min_obda', sep = ''), doubleplot = TRUE, odba_ = 'XYZ', min_ = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))), max_ = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))))
 		   }
-			
-			print(birds[ii])	
+		     print(birds[ii])	
 		}	
 				
 }
@@ -689,168 +846,7 @@ test replications elapsed relative user.self sys.self user.child sys.child
 				
 				}
 {# new acc function - not used, unfinished
-	   acc_actogram = function(dfr,vv, PNG = TRUE,min_=-0.1, max_=6, line_=FALSE) {
-				# dfr - data frame
-				# figCap - figure captions
-				# latlon - latitude longitude
-				# day - panel labels as day or as day of incubation period and inc constancy
-				# ins = start of incubation period
-				# inp = lenght of incubation period
-				# type = PNG -created, PDF - created, SAVE - also Rdata file saved
-				# min_/max_ - limits of y-axis in the panel
-				# UTC/UTC_met -  shall data and metadata be transformed to longitudinal time (yes = TRUE, no=FALSE) 
-				# signal - are data based on automated tracking?
-				
-		
-			 dfr$cv_x_la = log(abs(dfr$cv_x))
-			 dfr$cv_y_la = log(abs(dfr$cv_y))
-			 dfr$cv_z_la = log(abs(dfr$cv_z))
-			 
-			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
-			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
-			 if (doubleplot==TRUE) {
-				startd = min(dfr$day)
-				extra = dfr
-				extra$time = extra$time+24
-				extra$day = as.Date(extra$day  -1)
-				extra = subset(extra,extra$day >=startd)
-				dfr = rbind(dfr,extra)
-				dfr = dfr[order(dfr$day, dfr$time),]
-				
-				startvv = min(vv$day)
-				extrav = vv
-				extrav$s_ = extrav$s_+24
-				extrav$e_ = extrav$e_+24
-				extrav$day = as.Date(extrav$day  -1)
-				extrav = subset(extrav,extrav$day >=startvv)
-				vv = rbind(vv,extrav)
-				vv = vv[order(vv$day, vv$s_),]
-			 }
-			
-			 sl1 = unique(dfr$day)
-			 sl1=sl1[order(sl1)]
-			 
-			 strip.left1 = function(which.panel, ...) {
-										LAB = format(sl1[which.panel], "%b-%d")
-										grid.rect(gp = gpar(fill = "grey95", col=ln_col))
-										ltext(0.5, 0.5, cex = 0.6, LAB, col=wr_col)
-										}
-			 ylab_=list('Date',cex=0.7, col=wr_col, vjust=1, hjust=0.5)		
-			 if(doubleplot == TRUE){
-				 scales1 = list(x = list(at=c(0,6,12,18,24, 30, 36, 42, 48),
-										labels=c('00:00','','12:00','','24:00','','36:00','','48:00') , cex = 0.6, tck=0.4,			      
-										limits = c(0,48),col=wr_col,col.line = ln_col, alternating=3), 
-										y = list(limits = c(min_, max_),
-										at =c(round(min_*0.1),round(max_*0.74)),draw=TRUE), 
-										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
-			 }else{	 
-				 scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
-										limits = c(0,24),col=wr_col,col.line = ln_col, alternating=3), 
-										y = list(limits = c(min_, max_),
-										at =c(round(min_*0.1),round(max_*0.74)),draw=TRUE), 
-										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
-				 ylab_right=list('Ln(abs(cv(xyz)',cex=0.7, col=wr_col,vjust=-0.3)
-			 }	
-			 	
-			 
-								scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
-										limits = c(0,24),col=wr_col,col.line = ln_col, alternating=3), y = list(limits = c(min_, max_),at =c(0,5),draw=TRUE), col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
-								ylab_right=list('Ln(abs(cv(xyz)) & (Temperature-33C)*4',cex=0.7, col=wr_col,vjust=-0.3)
-												
-							
-				
-		
-			   panel1 = function(...) {
-							 
-							    {# disturbance
-									vi_ = v[which(v$day == sl1[panel.number()]),] 
-									if(nrow(vi_)>0) {panel.rect(xleft=vi_$start, ybottom=min_, xright=vi_$end, ytop=0.5, col=disturb, border=0)
-													}
-									
-								}							
-								# activity
-									panel.xyplot(...)
-							}
-			{# key
-				clr_cap=list(text=list(c(dfr$bird_ID[1],paste("tag",dfr$tag[1])),cex=0.6, col=c(wr_col)))	
-				clr_1=list(text = list(c('ln(abs(cv(x)))','ln(abs(cv(y)))','ln(abs(cv(z)))','ln(temperature)','visits or disturbance'),col=c(wr_col),cex=0.6),
-												text = list(c("o","o","o","o", "|"), cex=c(0.6,0.6,0.6,0.6,0.6), font="bold", col = c(cv_x,cv_y,cv_z,tem,disturb)))
-				{# adds buffer around legend columns by creating fake legend columns
-						clr_n=list(text = list(c("")))				
-					}									
-				key1 = c(  # captions
-									#clr_0,
-									clr_cap,
-									clr_n,
-								# used
-									clr_1,
-									clr_n,
-								# ending to compensate for captions
-								#	clr_e,
-								rep=FALSE, between=0.9 #just=-0.3#, 	padding.text=1.1,#, border=ln_col #columns
-								)									
-			}
-			{# plot				
-			#dev.new(width=8.26771654, height=11.6929134)
-						
-			rfidsplot = xyplot(log(abs(cv_x)) + log(abs(cv_y)) + log(abs(cv_z)) + (temp-33)*4 ~ time | day, 
-									data = dfr, 
-									type=ifelse(line_==TRUE, 'l','p'),
-									col = c(cv_x,cv_y,cv_z, tem),
-									cex = 0.1, cex.title=0.5, main = NULL,
-									layout = c(1,length(sl1)),# ifelse(length(sl1) > 30, 30, length(sl1))), 
-									strip.left = strip.left1, 
-									scales = scales1,
-									panel=panel1, 
-									key=key1,
-									ylab=ylab_,
-									ylab.right=ylab_right,
-									#auto.key=TRUE,
-									xlab.top=list('Time [h]',cex=0.7,col=wr_col, vjust=1),
-									xlab=NULL,
-									par.settings=list(axis.components=list(left=list(tck=0)), layout.widths=list(right.padding=2),axis.line = list(col = ln_col)), #box.3d=list(col = wr_col)), #top=list(tck=0.4),
-									as.table=TRUE,
-									#aspect = "fill", 
-									strip = FALSE, distribute.type = TRUE,    
-									lattice.options = list(layout.widths = list(strip.left = list(x = 3)))
-									)
-									
-			
-				
-			}	
-			if(type %in% c('SAVE')) {
-					save(rfidsplot,dfr, sl1, strip.left1,scales1,panel1,key1,nt, is_,ie_, act_c, ex,latlon, figCap, file=paste("C:/Users/mbulla/Documents/ownCloud/ACTOSforHTML/",paste("rfid",i,sep="_"),".Rdata",sep=""))
-					tf = paste0(outdir,pkk$act_ID[i], paste("_",pkk$pkk[i],sep=""), "_%03d.png",sep="") 
-														png(tf,width = 210, height = 57+8*length(sl1), units = "mm", res = 600)	
-									par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)
-									print(rfidsplot)
-									vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1))) # creates area for map	 	##y=0.9575 for 297mm height							
-									pushViewport(vp)
-									print(gg, newpage=FALSE) # prints the map
-									dev.off()
-				}else{if(type %in% c('PNG')) {
-									tf = paste0(outdir, paste(dfr$bird_ID[1],"_tag",dfr$tag[1],ifelse(line_==TRUE, '_L','_P'),sep=""), ".png",sep="") 
-									png(tf,width = 210, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
-									par(pin = c(8.26771654, (57+8*length(sl1))/25.4)) #c(8.26771654, 11.6929134)#par(pin = c(8.26771654, 11.6929134)) 
-									print(rfidsplot)
-									#vp <- viewport(x=0.89,y=((57+8*length(sl1))-12.6225)/(57+8*length(sl1)),width=0.11*1.5, height=32.67/(57+8*length(sl1)))#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 					
-									#pushViewport(vp)
-									#print(gg, newpage=FALSE) # prints the map
-									dev.off()
-									}else{
-									#dev.new(widht=8.26771654,height=11.6929134)
-									par(pin = c(8.26771654, 11.6929134)) 
-									print(rfidsplot)
-									#vp <- viewport(x=0.89,y=0.9575,width=0.11*1.5, height=0.11) # creates area for map	 	vp <- viewport(x=0.89,y=0.94,width=0.11*1.5, height=0.11) # creates area for map	 						
-									#pushViewport(vp)
-									#print(gg, newpage=FALSE) # prints the map
-									}}
-				}	
-		
-
-
-}					
-{# old functions
+	   {# old functions
 		 Accelerometer_actogram = function(dfr, type = "PNG", min_=-0.1, max_=6, line_=FALSE) {
 				# dfr - data frame
 				# figCap - figure captions
