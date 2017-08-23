@@ -139,7 +139,7 @@
 			 panel1 = function(...) {
 								# activity
 									dfri= dfr[which(dfr$day == sl1[panel.number()]),]
-									#dfri= dfr[which(dfr$day == sl1[1]),]
+									#dfri= dfr[which(dfr$day == sl1[22]),]
 									panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')
 								# disturbance
 									vji = vv[which(vv$day == sl1[panel.number()]),] 
@@ -148,7 +148,8 @@
 													}
 								# 24h line 
 								if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
-								panel.xyplot(...)
+							
+							panel.xyplot(...)
 							}
 			{# key
 				clr_cap=list(text=list(c(dfr$bird_ID[1]),cex=0.6, col=c(wr_col)))	
@@ -241,6 +242,11 @@
 			b = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='birds')
 			b$taken = as.POSIXct(paste(b$date, substring(b$taken, 12)), format ="%Y-%m-%d %H:%M:%S" )
 			b$released = as.POSIXct(ifelse(is.na(b$released), NA, paste(b$date, substring(b$released, 12))), format ="%Y-%m-%d %H:%M:%S" )
+			b$day = as.Date(trunc(b$date, "day"))
+			#v = v[!is.na(v$start_) & !is.na(v$end_),]
+			b$s_ = as.numeric(difftime(b$taken, trunc(b$taken,"day"), units = "hours"))
+			b$e_ = as.numeric(difftime(b$released, trunc(b$released,"day"), units = "hours"))
+			b$col_ = disturb_in
 		}
 		
 	}
@@ -261,35 +267,40 @@
 			p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=FALSE)
 			lbb = list()
 			lvj = list()
-			for(i in 1:length(p)){
+		   for(i in 1:length(p)){
 			load(p[i])
 				#odba_actogram(dfr=aa, line_=FALSE)
 			bi = b[b$bird_ID == aa$bird_ID[1] & !is.na(b$treat),]
 			bi$t_s = as.POSIXct(ifelse(!bi$treat%in%c('out_b', 'single', 'group', 'out_a'), as.character(bi$taken),as.character(bi$released)))
 			bi$t_e = c(bi$taken[-1],NA)
 			bi = bi[bi$treat%in%c('out_b', 'single', 'group', 'out_a'),]
-			bi$col_ = ifelse(bi$treat%in%c('out_b', 'out_a'), out_b, ifelse(bi$treat == 'single',sing, group)) 
+			bi$col_2 = ifelse(bi$treat%in%c('out_b', 'out_a'), out_b, ifelse(bi$treat == 'single',sing, group)) 
+			bi$top = min_+0.25*(max_-min_)
 			#bi[,c('t_s','t_e')]
 			l = list()
 			bb$col_ =NA
-			for(k in 1:nrow(bi)){
-				bik = bi[k,]
-				vk = v[v$aviary %in%c(bik$aviary, ifelse(bik$aviary%in%1:8, 'out', 'wu')),]
-				l[[k]] = vk[vk$start_>= bik$t_s & vk$start_<= bik$t_e| vk$end_>= bik$t_s & vk$end_<= bik$t_e,]
+			for(k in unique(bi$aviary)){
+				bik = bi[bi$aviary==k,]
+				vk = v[v$aviary %in%c(k, ifelse(k%in%1:8, 'out', 'wu')),]
+				l[[k]] = vk[vk$start_>= min(bik$t_s) & vk$start_<= max(bik$t_e)| vk$end_>= min(bik$t_s) & vk$end_<= max(bik$t_e),]
 				
-				bb$col_[bb$datetime_>=bik$t_s &  bb$datetime_<=bik$t_e]= bik$col_
+				bb$col_[bb$datetime_>=min(bik$t_s) &  bb$datetime_<=max(bik$t_e)]= bik$col_2[1]
 				}
 				vj = do.call(rbind,l)
 				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
-				vj$top = min_+0.25*(max_-min_)#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
-				vj = vj[!is.na(vj$day),]
-			
+				vj$top = ifelse(vj$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
+				vj = vj[!is.na(vj$day),c('day','s_','e_','top','col_')]
+				vj = rbind(vj,bi[,c('day','s_','e_','top','col_')])
 			lbb[[i]] = bb
 			lvj[[i]] = vj
 			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))	
 			}
 			bb = do.call(rbind,lbb)
 			vj = do.call(rbind,lvj)
+			vj = vj[,c('day','s_','e_','top','col_')]
+			# add captures
+			
+			
 		   }	
 		  {# activity/non-activity
 			 if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
@@ -299,6 +310,7 @@
 				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16))
 				bb = ddply(bb,.(datetime_, bird_ID, tag, col_), summarise, odba = sum(odba))	
 			 }		  
+			 #bb=bb[bb$datetime_>as.POSIXct('2017-08-17 00:00:00'),]
 			#densityplot(~bb$odba)
 				#densityplot(~log(bb$odba))
 			if(bb$bird_ID[1] %in% c('Z526')){ # cut off special for different logger attachemnt
