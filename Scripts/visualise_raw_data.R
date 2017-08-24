@@ -47,6 +47,9 @@
 		cv_z = "#ADD8E6"
 		tem = 'dodgerblue'
 		
+		sleep = 'darkorchid'
+		active = 'hotpink2'#'indianred4'
+		
 		out_b = 'grey80'
 		sing = 'black'
 		group = 'grey40'
@@ -92,7 +95,8 @@
 			 
 			 #dfr$act=0.8
 			 #dfr$col_='black'
-			
+			 
+			 vv$top = ifelse(vv$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
  			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
 			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
 			 
@@ -284,8 +288,9 @@
 				#print(gg, newpage=FALSE) # prints the map
 			}
 	}	 		
-	   acc_actogram = function(dfr,vv,bi_, PNG = TRUE,min_=-8, max_=1, line_=FALSE, res, doubleplot = TRUE, odba_ = 'XYZ') {
+	   acc_actogram = function(dfr,vv,bi_, oi, PNG = TRUE,min_=-8, max_=1, line_=FALSE, res, doubleplot = TRUE, odba_ = 'XYZ') {
 				# dfr - data frame
+				# oi = behavioural observations
 				# figCap - figure captions
 				# latlon - latitude longitude
 				# day - panel labels as day or as day of incubation period and inc constancy
@@ -296,9 +301,12 @@
 				# UTC/UTC_met -  shall data and metadata be transformed to longitudinal time (yes = TRUE, no=FALSE) 
 				# signal - are data based on automated tracking?
 				
-		
+			 vv$top = ifelse(vv$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
+ 			
 			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
 			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
+			 
+			 oi$active = ifelse(oi$beh%in%c('sleeping', 'resting'), min_+abs(max_-min_)*0.8, min_+abs(max_-min_)*0.9)
 			 if (doubleplot==TRUE) {
 				startd = min(dfr$day)
 				extra = dfr
@@ -307,6 +315,15 @@
 				extra = subset(extra,extra$day >=startd)
 				dfr = rbind(dfr,extra)
 				dfr = dfr[order(dfr$day, dfr$time),]
+				
+				startoi= min(oi$day)
+				extrao = oi
+				extrao$s_ = extrao$s_+24
+				extrao$e_ = extrao$e_+24
+				extrao$day = as.Date(extrao$day  -1)
+				extrao = subset(extrao,extrao$day >=startoi)
+				oi = rbind(oi,extrao)
+				oi = oi[order(oi$day, oi$s_),]
 				
 				startvv = min(vv$day)
 				extrav = vv
@@ -356,19 +373,29 @@
 				 # disturbance
 					vji = vv[which(vv$day == sl1[panel.number()]),] 
 									#vji = vv[which(vv$day == sl1[7]),] 
-									if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
-													}
+						if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)}
+				 # behav observations
+					oii = oi[which(oi$day == sl1[panel.number()]),] 
+						 #oii = oi[which(oi$day == sl1[4]),] 
+					if(nrow(oii)>0) {panel.rect(xleft = oii$s_, ybottom = min_, xright = oii$e_, ytop = oii$active, col = oii$col_, border = 0)}
+					#if(nrow(oii)>0) {panel.rect(xleft = oii$s_, ybottom = oii$active-abs(max_-min_)*0.05, xright = oii$e_, ytop = oii$active, col = oii$col_, border = 0)}
 				 # 24h line 
 					if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
+				 
 				 # activity			
-				 panel.xyplot(...)
-							}
+				  panel.xyplot(...)
+				  
+
+				 
+				}
 			{# key
 				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
 				clr_1=list(text = list(c('ln(odba):','X','Y','Z'),col=c(wr_col),cex=0.6),
 						points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,cv_x,cv_y, cv_z)))
 				clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary'),col=c(wr_col),cex=0.6),
-												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out)))		
+												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out)))	
+				clr_3=list(text = list(c('Behaviour:','sleep/rest', 'active'),col=c(wr_col),cex=0.6),
+												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, sleep, active)))										
 				{# adds buffer around legend columns by creating fake legend columns
 						clr_n=list(text = list(c("")))				
 					}									
@@ -381,6 +408,9 @@
 									clr_n,
 								# disturb
 									clr_2,
+									clr_n,
+								# behaviour
+									clr_3,
 									clr_n,
 								# ending to compensate for captions
 								#	clr_e,
@@ -460,14 +490,26 @@
 			b$s_ = as.numeric(difftime(b$taken, trunc(b$taken,"day"), units = "hours"))
 			b$e_ = as.numeric(difftime(b$released, trunc(b$released,"day"), units = "hours"))
 			b$col_ = disturb_in
+			b$where = 'in'
 		}
-		
+		{# behavioural observations
+		   o = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='activity_calibration')
+		   o$datetime_=as.POSIXct(o$datetime_)
+		   o = ddply(o,.(session), transform, t_e = c(datetime_[-1],NA))
+		   o = o[!is.na(o$t_e),]
+		   o$col_ = ifelse(o$beh%in%c('sleeping', 'resting'), sleep, active)
+		  
+		   o$day = as.Date(trunc(o$datetime_, "day"))
+		   o$s_ = as.numeric(difftime(o$datetime_, trunc(o$datetime_,"day"), units = "hours"))
+		   o$e_ = as.numeric(difftime(o$t_e, trunc(o$t_e,"day"), units = "hours"))
+		}
 	}
 }
 
 {# Visualise activity/non-activity based on obda 1 / 10 min		
 		minu = 1 # odba per 10 or 1 min
-		
+		cut_off = FALSE
+
 		p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
 		
@@ -489,7 +531,7 @@
 			bi$t_e = c(bi$taken[-1],NA)
 			bi = bi[bi$treat%in%c('out_b', 'single', 'group', 'out_a'),]
 			bi$col_2 = ifelse(bi$treat%in%c('out_b', 'out_a'), out_b, ifelse(bi$treat == 'single',sing, group)) 
-			bi$top = min_+0.25*(max_-min_)
+			#bi$top = min_+0.25*(max_-min_)
 			#bi[,c('t_s','t_e')]
 			l = list()
 			bb$col_ =NA
@@ -503,9 +545,9 @@
 				}
 				vj = do.call(rbind,l)
 				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
-				vj$top = ifelse(vj$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
-				vj = vj[!is.na(vj$day),c('day','s_','e_','top','col_')]
-				vj = rbind(vj,bi[,c('day','s_','e_','top','col_')]) # add captures
+				#vj$top = ifelse(vj$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
+				vj = vj[!is.na(vj$day),c('where','day','s_','e_','col_')]
+				vj = rbind(vj,bi[,c('where','day','s_','e_','col_')]) # add captures
 			lbb[[i]] = bb
 			lbi[[i]] = bi
 			lvj[[i]] = vj
@@ -514,6 +556,7 @@
 			bb = do.call(rbind,lbb)
 			bi = do.call(rbind,lbi)
 			vj = do.call(rbind,lvj)
+			oj = o[o$bird_ID==bb$bird_ID[1],]
 		  }	
 		  {# activity/non-activity
 			 if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
@@ -544,12 +587,14 @@
 			}
 			}		
 		  {# plot cut-off and actogram
-			dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
-			png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
-			print(dp)
-			dev.off()
-			act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
-			#acc_actogram(dfr = bb, vv = vj, bi_ = bi, res = paste(minu,'min_obda', sep = ''), doubleplot = TRUE, odba_ = 'XYZ', min_ = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))), max_ = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))))
+			if(cut_off == TRUE){
+			  dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
+			  png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
+			  print(dp)
+			  dev.off()
+			}
+			#act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			acc_actogram(dfr = bb, vv = vj, bi_ = bi, oi = oj, res = paste(minu,'min_obda', sep = ''), doubleplot = FALSE, odba_ = 'XYZ', min_ = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))), max_ = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))))
 		   }
 		     print(birds[ii])	
 		}	
