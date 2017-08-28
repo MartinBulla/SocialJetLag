@@ -31,8 +31,8 @@
 	{# define constants
 		varnames = c("tag", "datetime_", "x", "y","z", "temp", "batt")
 		
-		min_ = 0
-		max_ = 1
+		#min_ = 0
+		#max_ = 1
 		
 			
 		wr_col="grey50"
@@ -297,9 +297,10 @@
 				# ins = start of incubation period
 				# inp = lenght of incubation period
 				# type = PNG -created, PDF - created, SAVE - also Rdata file saved
-				# min_/max_ - limits of y-axis in the panel
+				# min_/max_ - limits of y-axis in the panel # for MEDIAN: min_=-1, max_=1, for ODBA: min_=-8, max_=1, 
 				# UTC/UTC_met -  shall data and metadata be transformed to longitudinal time (yes = TRUE, no=FALSE) 
 				# signal - are data based on automated tracking?
+				# odba_: XYZ - odba/min for each of the axes, MED = median acceleration/min for each of the axes, odba_sum = odba for all axes
 				
 			 vv$top = ifelse(vv$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
  			
@@ -351,23 +352,18 @@
 										y = list(limits = c(min_, max_),
 										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
 										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
-					if(odba_ == 'XYZ'){ 				
-					  ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)
-					}else{
-					   ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)
-					}
-			 						
+					if(odba_ == 'XYZ'){ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)}
+					if(odba_ == 'MED'){ylab_right=list('Median acceleration per min for XYZ',cex=0.7, col=wr_col,vjust=-0.3)}
+					if(odba == 'odba_sum'){ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)}					
 			 }else{	 
 				 scales1 = list(x = list(at=c(0,6,12,18,24),labels=c('00:00','06:00','12:00','18:00','24:00') , cex = 0.6, tck=0.4,
 										limits = c(0,24),col=wr_col,col.line = ln_col, alternating=3), 
 										y = list(limits = c(min_, max_),
 										at =c(round(min_*0.1),round(max_*0.74)),draw=FALSE), 
 										col=wr_col,cex=0.5, tck=0.4,alternating=2, col.line=ln_col)
-					if(odba_ == 'XYZ'){ 				
-					  ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)
-					}else{
-					   ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)
-					}
+					if(odba_ == 'XYZ'){ylab_right=list('Ln(odbaXYZ)',cex=0.7, col=wr_col,vjust=-0.3)}
+					if(odba_ == 'MED'){ylab_right=list('Median acceleration per min for XYZ',cex=0.7, col=wr_col,vjust=-0.3)}
+					if(odba_ == 'odba_sum'){ylab_right=list('Ln(odba)',cex=0.7, col=wr_col,vjust=-0.3)}
 			 }		
 	     	   panel1 = function(...) {
 				 # disturbance
@@ -385,13 +381,19 @@
 				 # activity			
 				  panel.xyplot(...)
 				  
-
-				 
+ 
 				}
 			{# key
 				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
-				clr_1=list(text = list(c('ln(odba):','X','Y','Z'),col=c(wr_col),cex=0.6),
+				if(odba_ == 'XYZ'){clr_1=list(text = list(c('ln(odba):','X','Y','Z'),col=c(wr_col),cex=0.6),
 						points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,cv_x,cv_y, cv_z)))
+				}
+				if(odba_ == 'MED'){clr_1=list(text = list(c('Median acceleration per min:','X','Y','Z'),col=c(wr_col),cex=0.6),
+						points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,cv_x,cv_y, cv_z)))
+				}
+				if(odba_ == 'odba_sum'){clr_1=list(text = list(c('ln(suma(odbaXYZ))'),col=c(wr_col),cex=0.6),
+						points=list(pch=c(15),cex= c(0.8), col=c(cv_z)))
+				}
 				clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary'),col=c(wr_col),cex=0.6),
 												points = list(pch=c(15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out)))	
 				clr_3=list(text = list(c('Behaviour:','sleep/rest', 'active'),col=c(wr_col),cex=0.6),
@@ -419,8 +421,8 @@
 			}
 			{# plot				
 			#dev.new(width=8.26771654, height=11.6929134)
-						
-			rfidsplot = xyplot(log(odbaX) + log(odbaY) + log(odbaZ)~ time | day, 
+			 if(odba_ == 'XYZ'){
+			   rfidsplot = xyplot(log(odbaX) + log(odbaY) + log(odbaZ)~ time | day, 
 									data = dfr, 
 									type='l', col = c(cv_x,cv_y, cv_z),
 									cex = 0.1, cex.title=0.5, main = NULL,
@@ -440,11 +442,57 @@
 									strip = FALSE, distribute.type = TRUE,    
 									lattice.options = list(layout.widths = list(strip.left = list(x = 3)))
 									)
+				}
+			 if(odba_ == 'MED'){
+			   rfidsplot = xyplot(m_x + m_y + m_z~ time | day, 
+									data = dfr, 
+									type='l', col = c(cv_x,cv_y, cv_z),
+									cex = 0.1, cex.title=0.5, main = NULL,
+									layout = c(1,length(sl1)),# ifelse(length(sl1) > 30, 30, length(sl1))), 
+									strip.left = strip.left1, 
+									scales = scales1,
+									panel=panel1, 
+									key=key1,
+									ylab=ylab_,
+									ylab.right=ylab_right,
+									#auto.key=TRUE,
+									xlab.top=list('Time [h]',cex=0.7,col=wr_col, vjust=1),
+									xlab=NULL,
+									par.settings=list(axis.components=list(left=list(tck=0)), layout.widths=list(right.padding=2),axis.line = list(col = ln_col)), #box.3d=list(col = wr_col)), #top=list(tck=0.4),
+									as.table=TRUE,
+									#aspect = "fill", 
+									strip = FALSE, distribute.type = TRUE,    
+									lattice.options = list(layout.widths = list(strip.left = list(x = 3)))
+									)
+				}
+			 if(odba_ == 'odba_sum'){
+			   rfidsplot = xyplot(log(odba)~ time | day, 
+									data = dfr, 
+									type='l', col = c(cv_z),
+									cex = 0.1, cex.title=0.5, main = NULL,
+									layout = c(1,length(sl1)),# ifelse(length(sl1) > 30, 30, length(sl1))), 
+									strip.left = strip.left1, 
+									scales = scales1,
+									panel=panel1, 
+									key=key1,
+									ylab=ylab_,
+									ylab.right=ylab_right,
+									#auto.key=TRUE,
+									xlab.top=list('Time [h]',cex=0.7,col=wr_col, vjust=1),
+									xlab=NULL,
+									par.settings=list(axis.components=list(left=list(tck=0)), layout.widths=list(right.padding=2),axis.line = list(col = ln_col)), #box.3d=list(col = wr_col)), #top=list(tck=0.4),
+									as.table=TRUE,
+									#aspect = "fill", 
+									strip = FALSE, distribute.type = TRUE,    
+									lattice.options = list(layout.widths = list(strip.left = list(x = 3)))
+									)
+				}
+			
 			}
 
 			if(PNG == TRUE) {
 				if(doubleplot == TRUE) {wid = 2; doub = '_double'}else{wid = 1; doub = ''}
-				od = ifelse(odba_ == TRUE, '_sumodbaOnly','_XYZodbaOnly')
+				od = ifelse(odba_ == 'odba_sum', '_sumodbaOnly',ifelse(odba_ == 'XYZ','_XYZodbaOnly', '_medAccXYZ'))
 				tf = paste0(outdir, paste(dfr$bird_ID[1],"_",res, doub, od, sep=""), ".png",sep="") 
 				
 				png(tf,width = 210*wid, height = 57+8*length(sl1), units = "mm", res = 600)	#png(tf,width = 210, height = 297, units = "mm", res = 600)	
@@ -466,7 +514,7 @@
 
 
 }					
-	
+
 	}
 	
 	{# load metadata
@@ -509,6 +557,7 @@
 {# Visualise activity/non-activity based on obda 1 / 10 min		
 		minu = 1 # odba per 10 or 1 min
 		cut_off = FALSE
+		odb = 'XYZ' # MED, odba_sum
 
 		p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
@@ -594,7 +643,11 @@
 			  dev.off()
 			}
 			#act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
-			acc_actogram(dfr = bb, vv = vj, bi_ = bi, oi = oj, res = paste(minu,'min_obda', sep = ''), doubleplot = FALSE, odba_ = 'XYZ', min_ = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))), max_ = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))))
+			if(odb == 'XYZ'){mi = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))); ma = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ)))}
+			if(odb == 'MED'){mi = round(min(c(bb$m_x,bb$m_y,bb$m_z))); ma = round(max(c(bb$m_x,bb$m_y,bb$m_z)))}
+			if(odb == 'odba_sum'){mi = round(min(log(bb$odba))); ma = round(max(log(bb$odba)))}
+			
+			acc_actogram(dfr = bb, vv = vj, bi_ = bi, oi = oj, res = paste(minu,'min_obda', sep = ''), doubleplot = FALSE, odba_ = odb, min_ = mi, max_ = ma)
 		   }
 		     print(birds[ii])	
 		}	
@@ -605,8 +658,24 @@
 	bb[bb$datetime_>as.POSIXct('2017-08-17 19:44:14') & bb$datetime_<as.POSIXct('2017-08-17 19:47:16'),]
 }
 
+{# check on subset
+	load("M:\\Science\\Projects\\MC\\data\\rdata\\H517_A19_2017-08-22subset.RData")
+	d=d_
+	d$time = as.numeric(difftime(d$datetime_1, trunc(d$datetime_1,"day"), units = "hours"))
+	x = d[d$time>2 & d$time<3,]
+	x = d[d$time>8 & d$time<9,]
+	summary(x)
+	dev.new()
+	plot(x$x~x$time, type = 'n', ylim = c(-2.3, 1.6))
+		lines(x$time, x$x, col = 'green')
+		lines(x$time, x$y, col = 'red')
+		lines(x$time, x$z, col = 'blue')
+	legend('bottomleft',legend=c('X','Y','Z'), lty=1, col = c('green','red','blue'))	
+		
+	}
 
-# not used yet				
+
+	# not used yet				
 				{# 1 min
 				dfr_=bb
 				dfr_$odba=dfr_$odbaX+dfr_$odbaY+dfr_$odbaZ	
