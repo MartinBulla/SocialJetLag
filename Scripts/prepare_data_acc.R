@@ -12,6 +12,7 @@
 	{# load packages
 	require(xlsx)
 	require(data.table)
+	require(raster)
 	#require(bigmemory)
 	#require(biganalytics)
 	#require(bigtabulate)
@@ -40,13 +41,7 @@
 			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
 			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
    for(i in 1:length(f)){
-	if(substring(f2[i],1,4)=='Z526'){
-		d1 = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
-		d2 = fread(f[i+1],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
-		d = rbind(d1,d2)
-		}else{
-		d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
-		}
+	d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
 		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
 		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
 	# per min
@@ -89,7 +84,8 @@
 				#d$datetime_ = as.POSIXct(d$datetime_, format = '%Y-%m-%d %H:%M:%OS') 	
 	#op <- options(digits.secs=2)
 	#save(d, file = paste(wd,'rdata/',aa$bird_ID[1],'_',aa$tag[1],'posix.RData',sep=''))	
-	#save(d, file = paste(wd,'rdata/','_H517_A19_2017-08-22_posix.RData',sep=''))	
+	#save(d, file = paste(wd,'rdata/','_H517_A19_2017-08-22_posix.RData',sep=''))
+	file.rename(f[i], paste(wd,'csv/', f2[i], sep = ''))	
 	print(f2[i])
 	}
 		
@@ -97,6 +93,16 @@
 		
 }
 
+{# not used exception
+		if(substring(f2[i],1,4)=='Z526'){
+		d1 = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		d2 = fread(f[i+1],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		d = rbind(d1,d2)
+		}else{
+		d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		}
+
+}
 {# old + testing
 {# CV
 		f = list.files(path=paste(wdd),pattern='.csv', recursive=TRUE,full.names=TRUE)
