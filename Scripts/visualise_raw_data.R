@@ -556,10 +556,11 @@
 
 {# Visualise activity/non-activity based on obda 1 / 10 min		
 		minu = 1 # odba per 10 or 1 min
-		cut_off = FALSE
+		move = FALSE # move files from to do folder
+		cut_off = TRUE
 		odb = 'XYZ' # MED, odba_sum
 
-		p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
+		#p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
 		
 		birds = unique(substring(p2,1,4))
@@ -588,24 +589,24 @@
 				# k = unique(paste(bi$aviary, bi$treat))[1]
 				bik = bi[paste(bi$aviary, bi$treat) == k,]
 				vk = v[v$aviary %in%c(bik$aviary, ifelse(bik$aviary%in%1:8, 'out', 'wu')),] # include also disturbance outside of the aviary
-				l[[k]] = vk[vk$start_>= min(bik$t_s) & vk$start_<= max(bik$t_e)| vk$end_>= min(bik$t_s) & vk$end_<= max(bik$t_e),]
+				l[[k]] = vk[vk$start_>= min(bik$t_s, na.rm=TRUE ) & vk$start_<= max(bik$t_e, na.rm=TRUE)| vk$end_>= min(bik$t_s, na.rm=TRUE) & vk$end_<= max(bik$t_e, na.rm=TRUE),]
 				
-				bb$col_[bb$datetime_>=min(bik$t_s) &  bb$datetime_<=max(bik$t_e)]= bik$col_2[1]
+				bb$col_[bb$datetime_>=min(bik$t_s, na.rm=TRUE) &  bb$datetime_<=max(bik$t_e,na.rm=TRUE)]= bik$col_2[1]
 				}
 				vj = do.call(rbind,l)
 				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
 				#vj$top = ifelse(vj$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
 				vj = vj[!is.na(vj$day),c('where','day','s_','e_','col_')]
 				vj = rbind(vj,bi[,c('where','day','s_','e_','col_')]) # add captures
-			lbb[[i]] = bb
+			lbb[[i]] = bb[,c('bird_ID','tag','datetime_','odbaX','odbaY','odbaZ', 'col_'), with=FALSE]
 			lbi[[i]] = bi
-			lvj[[i]] = vj
-			file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))	
+			lvj[[i]] = vj[!is.na(vj$s_) & !is.na(vj$e_),]
+			if(move == TRUE){file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))}
 			}
 			bb = do.call(rbind,lbb)
 			bi = do.call(rbind,lbi)
 			vj = do.call(rbind,lvj)
-			oj = o[o$bird_ID==bb$bird_ID[1],]
+			oj = o[o$bird_ID==bb$birds[1],]
 		  }	
 		  {# activity/non-activity
 			 if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
@@ -635,14 +636,15 @@
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
 			}
 			}		
-		  {# plot cut-off and actogram
+		  {# plot cut-off and actograms
 			if(cut_off == TRUE){
 			  dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
 			  png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
 			  print(dp)
 			  dev.off()
 			}
-			#act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			act_actogram2(dfr = bb, vv = vj, bi_ = bi, res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			
 			if(odb == 'XYZ'){mi = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))); ma = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ)))}
 			if(odb == 'MED'){mi = round(min(c(bb$m_x,bb$m_y,bb$m_z))); ma = round(max(c(bb$m_x,bb$m_y,bb$m_z)))}
 			if(odb == 'odba_sum'){mi = round(min(log(bb$odba))); ma = round(max(log(bb$odba)))}
