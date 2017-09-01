@@ -44,6 +44,7 @@
 	d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
 		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
 		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
+	if(grepl('/', d$datetime_[1])){gsub('/','-',d$datetime_)}
 	# per min
 	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))]
 
