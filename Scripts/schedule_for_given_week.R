@@ -9,10 +9,66 @@
 	require(XLConnect)
 	}
 	{# define date
-		date_ = '2017-08-07'
+		date_ = '2017-09-04'
 	}
 	}
-{# weekly schedule bird shifts
+{# weekly schedule bird shiftsnew TO DO
+	#week = as.POSIXct(c('2017-07-10','2017-07-17','2017-07-24','2017-07-31','2017-08-07','2017-08-14','2017-08-21','2017-08-28','2017-09-04','2017-09-11','2017-09-18','2017-09-25','2017-10-02','2017-10-09'))
+	#w = data.frame(w1 = week[1:12], w2 = week[2:13], w3 = week[3:14], w4 = week[4:15], w5 = week[5:16],w6 = week[6:17], stringsAsFactors = FALSE)
+	s = readWorksheetFromFile(paste(wd,'metadata_&_weekly_acc_attachment.xls', sep = ''), sheet=1)
+		
+		s$bmr = s$ex = s$giz = NULL
+		s$now = s$cage
+		s$to_go = s$cage
+		s$treatment = 'out_b'
+		#s$week[s$exp_wu%in%c(7)] = s$week[s$exp_wu%in%c(7)]+7*24*60*60
+		
+		s2 = s
+		s2$now = s2$cage
+		s2$to_go = paste('w',s2$exp_wu, sep='')
+		s2$week = s2$week+7*24*60*60
+		s2$treatment = 'single'
+		
+		s3 = s2
+		s3$now = s3$to_go
+		s3$week = s3$week+7*24*60*60	
+		s3$treatment = 'single'
+		
+		s4 = s3
+		s4$now = s4$to_go
+		s4$to_go = ifelse(s4$exp_wu%in%c(7), s4$cage, 'w3')
+		s4$week =s4$week+7*24*60*60
+		s4$treatment = ifelse(s4$exp_wu%in%c(7), 'out_a', 'group')
+		
+		s5 = s4
+		s5$now = s5$to_go
+		s5$to_go = ifelse(s5$treatment=='out_a', s5$cage, 'w3')
+		s5$treatment = ifelse(s5$treatment=='out_a', 'off', 'group')
+		s5$week =s5$week+7*24*60*60	
+		
+		s6 = s5
+		s6$now = 'wu3'
+		s6$to_go = ifelse(s6$to_go == 'w3', s6$cage, NA)
+		s6 = s6[!is.na(s6$to_go),]
+		s6$week = s6$week+7*24*60*60	
+		s6$treatment = 'out_a'
+		
+		s7 = s6
+		s7$week = s7$week+7*24*60*60	
+		s7$treatment = 'off'
+		
+		s = rbind(s,s2,s3,s4,s5,s6)
+		s$treatment = factor(s$treatment,levels = c('off',"single","out_a","out_b", "group"))
+		s = s[order(s$week, s$treatment, s$now),]	
+		
+		s$cage = s$exp_wu = NULL
+		write.csv(s, paste(outdir,'schedule_all_weeks.csv', sep = ''),row.names = FALSE)
+		s = s[which(s$week == as.POSIXct(date_)),]
+		write.csv(s[,c('week','rnr','bird_id','actual_CR','T_av','now','to_go','treatment','comment')],paste(outdir,'weekly_schedule_', date_,'.csv', sep = ''),row.names = FALSE)
+		#write.table(s, paste(wd,'weekly_schedulle.txt', sep = ''),sep = "\t",row.names = FALSE)
+		}
+
+{# weekly schedule bird shifts old
 	week = as.POSIXct(c('2017-07-10','2017-07-17','2017-07-24','2017-07-31','2017-08-07','2017-08-14','2017-08-21','2017-08-28','2017-09-04','2017-09-11','2017-09-18','2017-09-25','2017-10-02','2017-10-09'))
 	w = data.frame(w1 = week[1:7], w2 = week[2:8], w3 = week[3:9], w4 = week[4:10], stringsAsFactors = FALSE)
 	s = readWorksheetFromFile(paste(wd,'metadata_&_weekly_acc_attachment.xls', sep = ''), sheet=1)
@@ -47,7 +103,7 @@
 		s = s[order(s$week, s$treatment, s$now),]	
 		
 		s$cage = s$exp_wu = NULL
-		#write.csv(s, paste(outdir,'schedule_all_weeks.csv', sep = ''),row.names = FALSE)
+		write.csv(s, paste(outdir,'schedule_all_weeks.csv', sep = ''),row.names = FALSE)
 		s = s[which(s$week == as.POSIXct(date_)),]
 		write.csv(s, paste(outdir,'weekly_schedule_', date_,'.csv', sep = ''),row.names = FALSE)
 		#write.table(s, paste(wd,'weekly_schedulle.txt', sep = ''),sep = "\t",row.names = FALSE)
@@ -55,7 +111,7 @@
 	
 {# explore 2017-08-01 10:39:25 based on shifting/release of 50 birds	
 e = readWorksheetFromFile(paste(wd,'knot release august 2017.xlsx', sep = ''), sheet=1, endCol = 8)
-e = readWorksheetFromFile(paste(wd,'knot release august 2017_MB_suggestions.xlsx', sep = ''), sheet=1, endCol = 10)
+e = readWorksheetFromFile(paste(wd,'freeze/knot release august 2017_MB_suggestions.xlsx', sep = ''), sheet=1, endCol = 10)
 	d = readWorksheetFromFile(paste(wd,'birds_sex.xlsx', sep = ''), sheet=1)
 	e$sex = d$Sex[match(e$ID,d$bird_id)]
 	#d = read.table(paste(wd, 'Eva_Kim/formartin_tochoosebirds.txt', sep=''), header = TRUE, stringsAsFactors = FALSE)
@@ -69,6 +125,7 @@ summary(factor(e$to.cage.))
 table(e$Species,e$to.cage.)
 summary(factor(e$rhythm))
 table(e$rhythm,e$to.cage.)
+table(e$to.cage.)
 table(e$Age,e$to.cage.)
 table(e$Age,e$to.cage., e$Species)
 
