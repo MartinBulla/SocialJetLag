@@ -33,7 +33,10 @@
 }
 	}
 }
- 
+
+ Error in `[.data.table`(d, , list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z),  : 
+  Column 5 of result for group 5861 is type 'logical' but expecting type 'double'. Column types must be consistent for each group.
+
 {# PREPARAE DATA - odba 2017-08-07 18:35:24
    f = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
 			#f=f[order(substring(f,nchar(f)-8))]
@@ -44,9 +47,9 @@
 	d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
 		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
 		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
-	if(grepl('/', d$datetime_[1])){gsub('/','-',d$datetime_)}
+	if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}
 	# per min
-	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))]
+	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))] ## cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
 
 					#bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,16))]
 					#bb = ddply(d,. (datetime_=substring(d$datetime_,1,16)),summarise, odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp))
