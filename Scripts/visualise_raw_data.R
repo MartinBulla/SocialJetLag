@@ -189,9 +189,9 @@
 				
 				if(nrow(ff)>0){
 					clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary', 'lack of data'),col=c(wr_col),cex=0.6),
-												points = list(pch=c(15,15,15, 18), cex=c(0.8), col = c(tra, disturb_in, disturb_out, failure)))
+												points = list(pch=c(15,15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out, failure)))
 				}else{clr_2=list(text = list(c('Disturbance','inside aviary', 'outside aviary', 'lack of data'),col=c(wr_col, wr_col, wr_col, ln_col),cex=0.6),
-												points = list(pch=c(15,15,15, 18), cex=c(0.8), col = c(tra, disturb_in, disturb_out, tra)))}							
+												points = list(pch=c(15,15,15,15), cex=c(0.8), col = c(tra, disturb_in, disturb_out, tra)))}							
 					
 				{# adds buffer around legend columns by creating fake legend columns
 						clr_n=list(text = list(c("")))				
@@ -550,7 +550,7 @@
 		{# logger failure/lack of data
 			f = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='failed')
 			l = list()
-			for (i 1 in 1:nrow(f)){
+			for (i in 1:nrow(f)){
 				fi = f[i,]
 				tst =as.numeric(difftime(as.Date(fi$end_),as.Date(fi$start_),'days'))
 				if(tst>0){
@@ -569,7 +569,7 @@
 						if(tst>1){
 							x2 = data.frame(bird_ID = fi$bird_ID, s_ = 0, e_ = 23.99,day = seq(as.Date(trunc(x$start_, "day"))+1,as.Date(trunc(x$end_, "day"))-1,by=1), what = fi$what)
 							xx=rbind(xx,x2)
-							xx = xx[order(xx$day)]
+							xx = xx[order(xx$day),]
 							}
 					l[[i]] = xx	
 					}				
@@ -608,7 +608,7 @@
 		minu = 1 # odba per 10 or 1 min
 		move = FALSE # move files from to do folder
 		cut_off = TRUE
-		odb = 'XYZ' # MED, odba_sum
+		odb = 'XYZ' #'nothing'# MED, odba_sum
 
 		#p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
@@ -661,8 +661,9 @@
 			oj = o[o$bird_ID==bb$birds[1],]
 		  }	
 		  {# activity/non-activity
-			 if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)
-			 }else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
+			 bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ
+			 # use only for Z682 from the first trail
+			 #if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)}else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
 			
 			 if(minu == '10'){
 				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16))
@@ -674,24 +675,26 @@
 			cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[1]] # use first low as flipping point between no-activity and activity
 			#		if(bb$bird_ID[1] == 'Z682'){cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]]} # for Z682
 			#		if(bb$bird_ID[1] %in% c('Z546', 'Z687')){cut_ = 0.1} # for Z682
-					
+			if(bb$bird_ID[1] %in% c('Z682', 'Z716')){cut_ = 0.1}		
 					bb$act = ifelse(bb$odba<cut_, 0, 1)
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
 			}		
 		  {# plot cut-off and actograms
 			if(cut_off == TRUE){
-			  dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
+			   dp = densityplot(~bb$odba, xlab =paste(minu, 'min obda', sep=''), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red')))
+				## use only for Z682 from the first trail ##
+				#dp = densityplot(~bb$odba, xlab = ifelse(bb$bird_ID[1] == 'Z682', '1 min log(obda)','1 min obda'), main = bb$bird_ID[1])+layer(panel.abline(v=cut_, col=ifelse(bb$bird_ID[1] %in% c('Z546', 'Z687'), 'pink','red'))) # pink line indicates fixed 0.1 cut off - not derived from data  
 			  png(paste(outdir, 'cut_off/',bb$bird_ID[1],"_", bb$tag[1],'.png',sep=""), width=12,height=12, units ='cm', res = 300)
 			  print(dp)
 			  dev.off()
 			}
-			act_actogram2(dfr = bb, vv = vj, bi_ = bi, ff = f[f$bird_ID == birds[ii],],res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = '')), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda')
+			act_actogram2(dfr = bb, vv = vj, bi_ = bi, ff = f[f$bird_ID == birds[ii],],res = paste(minu,'min_obda', sep = ''), doubleplot = TRUE, odba_ = FALSE, min_ = 0, max_ = 1) #act_actogram2(dfr = bb, vv = vj, res = '1min_log-obda') #use only for Z682 from the first trail -  res = ifelse(bb$bird_ID[1] == 'Z682', paste(minu,'min_log-obda', sep = ''), paste(minu,'min_obda', sep = ''))
 			
 			if(odb == 'XYZ'){mi = min(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ))); ma = max(c(log(bb$odbaX),log(bb$odbaY),log(bb$odbaZ)))}
 			if(odb == 'MED'){mi = round(min(c(bb$m_x,bb$m_y,bb$m_z))); ma = round(max(c(bb$m_x,bb$m_y,bb$m_z)))}
 			if(odb == 'odba_sum'){mi = round(min(log(bb$odba))); ma = round(max(log(bb$odba)))}
-			
-			acc_actogram(dfr = bb, vv = vj, bi_ = bi, oi = oj,  res = paste(minu,'min_obda', sep = ''), doubleplot = FALSE, odba_ = odb, min_ = mi, max_ = ma)
+			if(odb != 'nothing'){acc_actogram(dfr = bb, vv = vj, bi_ = bi, oi = oj,  res = paste(minu,'min_obda', sep = ''), doubleplot = FALSE, odba_ = odb, min_ = mi, max_ = ma)
+			}
 		   }
 		     print(birds[ii])	
 		}	
