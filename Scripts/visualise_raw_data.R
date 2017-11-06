@@ -10,6 +10,7 @@
 	     #wdd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/accelerometer output"	
 		 #outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/visualized/"	
 	}
+	 
 	{# load packages
 	require(grid)
 	require(plyr)
@@ -126,7 +127,7 @@
 				}
 			 }
 				
-			 sl1 = unique(dfr$day)
+			 sl1 = unique(c(dfr$day, ff$day))
 			 sl1=sl1[order(sl1)]
 			 strip.left1 = function(which.panel, ...) {
 										LAB = format(sl1[which.panel], "%b-%d")
@@ -165,7 +166,7 @@
 					# activity
 					 dfri= dfr[which(dfr$day == sl1[panel.number()]),]
 						#dfri= dfr[which(dfr$day == sl1[22]),]
-						panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')
+					 if(nrow(dfri)>0){panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')}
 					# disturbance
 					 vji = vv[which(vv$day == sl1[panel.number()]),] 
 					 #vji = vv[which(vv$day == sl1[7]),] 
@@ -540,7 +541,11 @@
 			v = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='visits')
 			v = v[!is.na(v$start) | !is.na(v$end),]
 			v$start_ = as.POSIXct(strptime(paste(v$date, substring(v$start, 12)),format ="%Y-%m-%d %H:%M:%S" ))
+				v$start_ = as.POSIXct(ifelse(v$start_>as.POSIXct('2017-10-22 01:00:00'), v$start_+60*60,v$start_),  origin = '1970-01-01 00:00.00 UTC')
+				
 			v$end_ = as.POSIXct(strptime(paste(v$date, substring(v$end, 12)),format ="%Y-%m-%d %H:%M:%S" ))
+				v$end_ = as.POSIXct(ifelse(v$end_>as.POSIXct('2017-10-22 01:00:00'), v$end_+60*60,v$end_),  origin = '1970-01-01 00:00.00 UTC')
+			
 			#v = v[v$aviary %in% c('w1','w2', 'w3','w4','w5','w6','w7','mud','tech','wu'),]
 			v$day = as.Date(trunc(v$date, "day"))
 			#v = v[!is.na(v$start_) & !is.na(v$end_),]
@@ -548,10 +553,12 @@
 			v$e_ = as.numeric(difftime(v$end_, trunc(v$end_,"day"), units = "hours"))	
 		}
 		{# logger failure/lack of data
-			f = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='failed')
+			f_ = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='failed')
+				f_$start_ = as.POSIXct(ifelse(f_$start_>as.POSIXct('2017-10-22 01:00:00'), f_$start_+60*60,f_$start_),  origin = '1970-01-01 00:00.00 UTC')
+				f_$end_ = as.POSIXct(ifelse(f_$end_>as.POSIXct('2017-10-22 01:00:00'), f_$end_+60*60,f_$end_),  origin = '1970-01-01 00:00.00 UTC')	
 			l = list()
-			for (i in 1:nrow(f)){
-				fi = f[i,]
+			for (i in 1:nrow(f_)){
+				fi = f_[i,]
 				tst =as.numeric(difftime(as.Date(fi$end_),as.Date(fi$start_),'days'))
 				if(tst>0){
 						x = fi
@@ -580,7 +587,9 @@
 		{# birds
 			b = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='birds')
 			b$taken = as.POSIXct(paste(b$date, substring(b$taken, 12)), format ="%Y-%m-%d %H:%M:%S" )
+				b$taken = as.POSIXct(ifelse(b$taken>as.POSIXct('2017-10-22 01:00:00'), b$taken+60*60,b$taken),  origin = '1970-01-01 00:00.00 UTC')
 			b$released = as.POSIXct(ifelse(is.na(b$released), NA, paste(b$date, substring(b$released, 12))), format ="%Y-%m-%d %H:%M:%S" )
+				b$released = as.POSIXct(ifelse(b$released>as.POSIXct('2017-10-22 01:00:00'), b$released+60*60,b$released),  origin = '1970-01-01 00:00.00 UTC')
 			b$day = as.Date(trunc(b$date, "day"))
 			#v = v[!is.na(v$start_) & !is.na(v$end_),]
 			b$s_ = as.numeric(difftime(b$taken, trunc(b$taken,"day"), units = "hours"))
@@ -593,6 +602,7 @@
 		{# behavioural observations
 		   o = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='activity_calibration')
 		   o$datetime_=as.POSIXct(o$datetime_)
+		   o$datetime_ = as.POSIXct(ifelse(o$datetime_>as.POSIXct('2017-10-22 01:00:00'), o$datetime_+60*60,o$datetime_),  origin = '1970-01-01 00:00.00 UTC')
 		   o = ddply(o,.(session), transform, t_e = c(datetime_[-1],NA))
 		   o = o[!is.na(o$t_e),]
 		   o$col_ = ifelse(o$beh%in%c('sleeping', 'resting'), sleep, active)
@@ -615,7 +625,7 @@
 		
 		birds = unique(substring(p2,1,4))
 		
-		for(ii in 1:length(birds)){
+		for(ii in 1:2){#length(birds)){
 		  {# make one dataset
 			p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=TRUE)
 			p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=FALSE)
@@ -672,10 +682,18 @@
 			 #bb=bb[bb$datetime_>as.POSIXct('2017-08-17 00:00:00'),]
 			#densityplot(~bb$odba)
 				#densityplot(~log(bb$odba))
-			cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[1]] # use first low as flipping point between no-activity and activity
+			# cutoff point - use data without logger on ground
+			  ff = f_[f_$bird_ID==birds[ii],]
+			  if(nrow(ff)>0){
+					for(u in 1:length(f_$bird_ID[f_$bird_ID==birds[ii]])){
+						fu = ff[u,]
+						bf = bb[!(bb$datetime_>=fu$start_ & bb$datetime_<=fu$end_),]
+						}
+						}else{bf=bb}
+			  cut_ = density (bf$odba)$x[find_peaks(-density (bf$odba)$y)[1]] # use first low as flipping point between no-activity and activity
 			#		if(bb$bird_ID[1] == 'Z682'){cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]]} # for Z682
 			#		if(bb$bird_ID[1] %in% c('Z546', 'Z687')){cut_ = 0.1} # for Z682
-			if(bb$bird_ID[1] %in% c('Z682', 'Z716')){cut_ = 0.1}		
+			if(bb$bird_ID[1] %in% c('Z682', 'Z716','H745')){cut_ = 0.1}		
 					bb$act = ifelse(bb$odba<cut_, 0, 1)
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
 			}		
@@ -702,7 +720,53 @@
 }
 
 
-# diff cut offs - not used now
+{# failures - start/end
+# Z041
+  load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z041_A16_2017-10-31_odba.Rdata")
+	 a = bb[bb$datetime_>as.POSIXct('2017-10-27 4:00:00') & bb$datetime_<as.POSIXct('2017-10-27 07:00:00'),]
+	 a$odbaX
+	 a[60:64,]
+	 aa[aa$datetime_>as.POSIXct('2017-10-27 05:02:00') & aa$datetime_<as.POSIXct('2017-10-27 05:03:00'),][5:10,]
+# Z041
+ load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z041_A13_2017-10-24_odba.Rdata")
+a = bb[bb$datetime_>as.POSIXct('2017-10-23 10:00:00') & bb$datetime_<as.POSIXct('2017-10-23 11:00:00'),]
+	 a$odbaX
+	 aa[aa$datetime_>as.POSIXct('2017-10-23 10:21:00') & aa$datetime_<as.POSIXct('2017-10-23 10:22:00'),][5:10,]
+# Z682
+ load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z682_A19_2017-10-03_odba.Rdata")
+ a = bb[bb$datetime_>as.POSIXct('2017-09-25 18:00:00') & bb$datetime_<as.POSIXct('2017-09-25 23:00:00'),]
+ a[a$odbaZ == min(a$odbaZ),]
+ a[a$datetime_>as.POSIXct('2017-09-25 20:18:00')& a$datetime_<as.POSIXct('2017-09-25 20:22:00'),]
+ a[a$datetime_==as.POSIXct('2017-09-25 20:20:00'),]
+ aa[aa$datetime_>as.POSIXct('2017-09-25 20:19:00')& aa$datetime_<as.POSIXct('2017-09-25 20:20:00'),]
+ # Z555
+  load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z555_A11_2017-10-03_odba.Rdata")
+  a = bb[bb$datetime_>as.POSIXct('2017-09-30 10:00:00') & bb$datetime_<as.POSIXct('2017-09-30 11:45:00'),]
+  a[63:67,]
+  aa$odbaX[aa$datetime_>as.POSIXct('2017-09-30 11:05:00') & aa$datetime_<as.POSIXct('2017-09-30 11:07:00')]
+  aa[aa$datetime_>as.POSIXct('2017-09-30 11:05:00') & aa$datetime_<as.POSIXct('2017-09-30 11:07:00'),][35:40,]
+ # Z537
+	load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z537_A17_2017-09-19_odba.Rdata")
+	tail(aa)
+ # Z041
+	load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z041_A25_2017-10-17_odba.Rdata")
+	a = bb[bb$datetime_>as.POSIXct('2017-10-16 06:00:00') & bb$datetime_<as.POSIXct('2017-10-16 08:00:00'),]
+	a$odbaX
+	a[80:85,]
+	aa[aa$datetime_>as.POSIXct('2017-10-16 07:22:00') & aa$datetime_<as.POSIXct('2017-10-16 07:23:00'),][12:17,]
+ #Z513	
+	 load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z513_A24_2017-10-10_odba.Rdata")
+	 a = bb[bb$datetime_>as.POSIXct('2017-10-10 10:00:00') & bb$datetime_<as.POSIXct('2017-10-10 11:00:00'),]
+	 a$odbaX
+	 aa[aa$datetime_>as.POSIXct('2017-10-10 10:08:00') & aa$datetime_<as.POSIXct('2017-10-10 10:09:00'),][5:10,]
+  }
+
+  
+  
+  
+  
+  
+  # diff cut offs - not used now
 if(bb$bird_ID[1] %in% c('Z526')){ # cut off special for different logger attachemnt
 					bb1 = bb[bb$datetime_<bi$t_e[bi$treat[1] == 'group'],]
 					cut1 = density (bb1$odba)$x[find_peaks(-density (bb1$odba)$y)[1]] # use first low as flipping point between no-activity and activity
