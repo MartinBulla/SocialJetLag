@@ -3,9 +3,12 @@
 	     #wd = "M:/Science/Projects/MC/test_data_axy4/"	
 		 #wdd=wd
 	     wd = "M:/Science/Projects/MC/data/"	
+		 #wd = "//ds/grpkempenaers/Martin/" 
 	    # wd = "H:/data/"	
 		 outdir = 'C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/acc'
+		 #outdir = "//ds/grpkempenaers/Martin/"
 	     wd2 = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/"	
+		 #wd2 = "//ds/grpkempenaers/Martin/"
 	     #wdd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/accelerometer output"	
 		 #outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/visualized/"	
 	}
@@ -25,6 +28,7 @@
 	}
 	{# define constants
 		varnames = c("tag", "datetime_", "x", "y","z", "temp", "batt")
+		sep_ = '\t'#',' #\t#
 	}
 	{# load functions
 		 odba <- function(x){
@@ -34,28 +38,29 @@
 	}
 }
 
- Error in `[.data.table`(d, , list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z),  : 
-  Column 5 of result for group 5861 is type 'logical' but expecting type 'double'. Column types must be consistent for each group.
-
-{# PREPARAE DATA - odba 2017-08-07 18:35:24
+#load(file="//ds/grpkempenaers/Martin/rdata/H745_A30_2017-10-31.RData")
+{# PREPARAE DATA 
    f = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
 			#f=f[order(substring(f,nchar(f)-8))]
    f2 = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=FALSE)
 			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
 			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
    for(i in 1:length(f)){
-	d = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+	d = fread(f[i],sep=sep_,  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
 		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
 		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
-	if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}
+	#if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}	
+	#as.POSIXct(c('2017/10/29 01:00:00','2017/10/29 02:00:00','2017/10/29 03:00:00','2017/10/29 04:00:00'), format = '%Y/%m/%d %H:%M:%OS',tz="CES")
+
 	# per min
 	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))] ## cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
 
 					#bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,16))]
 					#bb = ddply(d,. (datetime_=substring(d$datetime_,1,16)),summarise, odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp))
 	  names(bb)[1] = 'datetime_'
-	  bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]
-		#bb$datetime_ = as.POSIXct(strptime(bb$datetime_, '%Y-%m-%d %H:%M'))
+	  #bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]
+	  if(grepl('/', bb$datetime_[1])){bb[,datetime_:= as.character(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M',tz="UTC"))]}#else{bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M',tz="UTC")]}
+	  
 	  bb$bird_ID=substring(f2[i],1,4)
 	  bb$tag=substring(f2[i],6,8)					
 								
@@ -66,15 +71,19 @@
 				#dd = d[substring(datetime_,1,19)=="2017-08-01 22:16:15",]			
 	  names(aa)[1] = 'datetime_'
 		#aa$datetime_ = as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')
-	  aa[,datetime_:= as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')]
-	  aa$bird_ID=substring(f2[i],1,4)
-	  aa$tag=substring(f2[i],6,8)
+	  
+	   #aa[,datetime_:= as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')]#
+	   if(grepl('/', aa$datetime_[1])){aa[,datetime_:= as.character(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M:%S',tz="UTC"))]}#else{aa[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%S',tz="UTC")]}
+	   aa$bird_ID=substring(f2[i],1,4)
+	   aa$tag=substring(f2[i],6,8)
 			
 				
 	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],10,19),"_odba.Rdata",sep=""))
 		rm(aa)
 		rm(bb)
 		gc()
+		
+	if(grepl('/', d$datetime_[1])){d[,datetime_:= as.character(format(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M:%OS',tz="UTC"),"%Y-%m-%d %H:%M:%OS2"))]}
 	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'.RData',sep=''))
 	 # make subset if needed
 	 #d[,datetime_1:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%OS')]# for milliseconds see http://stackoverflow.com/questions/2150138/how-to-parse-milliseconds-in-r
@@ -93,10 +102,121 @@
 	print(f2[i])
 	}
 		
+}
+
+{# PREPARE DATA - server
+	 load(file="//ds/grpkempenaers/Martin/rdata/H745_A30_2017-10-31.RData")
+	 f = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
+			#f=f[order(substring(f,nchar(f)-8))]
+	f2 = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=FALSE)
+			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
+			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
+		i=1
+		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
+		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
+	if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}	
+	# per min
+	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))] ## cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
+
+					#bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,16))]
+					#bb = ddply(d,. (datetime_=substring(d$datetime_,1,16)),summarise, odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp))
+	  names(bb)[1] = 'datetime_'
+	  bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]#if(grepl('/', bb$datetime_[1])){bb[,datetime_:= as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M')]}else{bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]}
+	  
+	  bb$bird_ID=substring(f2[i],1,4)
+	  bb$tag=substring(f2[i],6,8)					
+								
+	# per second
+	  aa = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z),  m_x = median(x), m_y = median(y), m_z = median(z)), by = . (substring(datetime_,1,19))] # cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
+	
+				#aa = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,19))]
+				#dd = d[substring(datetime_,1,19)=="2017-08-01 22:16:15",]			
+	  names(aa)[1] = 'datetime_'
+		#aa$datetime_ = as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')
+	  
+	   aa[,datetime_:= as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')]#if(grepl('/', aa$datetime_[1])){aa[,datetime_:= as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M')]}else{aa[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]}
+	  aa$bird_ID=substring(f2[i],1,4)
+	  aa$tag=substring(f2[i],6,8)
+			
+				
+	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],10,19),"_odba.Rdata",sep=""))
+	
+}
+{# PREPARAE DATA - from RData file
+   load(file="//ds/grpkempenaers/Martin/rdata/H745_A30_2017-10-31.RData")
+   f = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=TRUE)
+			#f=f[order(substring(f,nchar(f)-8))]
+   f2 = list.files(path=paste(wd,'csv/to_do/', sep=''),pattern='.csv', recursive=TRUE,full.names=FALSE)
+			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
+			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
+   i = 1
+	d = fread(f[i],sep=sep_,  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
+		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
+	#if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}	
+	# per min
+	  bb = d[,list(odbaX = odba(x), odbaY = odba(y), odbaZ = odba(z), m_x = median(x), m_y = median(y), m_z = median(z)), by = .(substring(datetime_,1,16))] ## cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
+
+					#bb = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,16))]
+					#bb = ddply(d,. (datetime_=substring(d$datetime_,1,16)),summarise, odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp))
+	  names(bb)[1] = 'datetime_'
+	  #bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]
+	  if(grepl('/', bb$datetime_[1])){bb[,datetime_:= as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M')]}else{bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]}
+	  
+	  bb$bird_ID=substring(f2[i],1,4)
+	  bb$tag=substring(f2[i],6,8)					
+								
+	# per second
+	  aa = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z),  m_x = median(x), m_y = median(y), m_z = median(z)), by = . (substring(datetime_,1,19))] # cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
+	
+				#aa = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z), temp=median(temp), bat = median(as.numeric(batt))), by = .(substring(datetime_,1,19))]
+				#dd = d[substring(datetime_,1,19)=="2017-08-01 22:16:15",]			
+	  names(aa)[1] = 'datetime_'
+		#aa$datetime_ = as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')
+	  
+	   #aa[,datetime_:= as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')]
+	  if(grepl('/', aa$datetime_[1])){aa[,datetime_:= as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M')]}else{aa[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]}
+	  aa$bird_ID=substring(f2[i],1,4)
+	  aa$tag=substring(f2[i],6,8)
+			
+				
+	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],10,19),"_odba.Rdata",sep=""))
+		rm(aa)
+		rm(bb)
+		gc()
+	if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}		
+		
+	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'.RData',sep=''))
+	
+	rm(d)
+	file.rename(f[i], paste(wd,'csv/', f2[i], sep = ''))	
+	print(f2[i])
+		
 		
 		
 }
 
+d = fread(f[i],sep=sep_,  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
+if(grepl('/', d$datetime_[1])){d[,datetime_:= as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M:%OS')]}else{d[,datetime_1:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%OS')]}	
+d[,datetime_:= as.character(datetime_)]
+	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'.RData',sep=''))
+	 # make subset if needed
+	 #d[,datetime_1:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%OS')]# for milliseconds see http://stackoverflow.com/questions/2150138/how-to-parse-milliseconds-in-r
+	 #op <- options(digits.secs=2)
+	 # d_ = d[d$datetime_1>as.POSIXct('2017-08-03 00:00:00') & d$datetime_1<as.POSIXct('2017-08-04 00:00:00'),]
+	  #save(  d_, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'subset.RData',sep=''))
+	rm(d)
+	#rm(d)
+	#rm(list = ls(all.names = TRUE))
+	#d[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%OS')]	
+				#d$datetime_ = as.POSIXct(d$datetime_, format = '%Y-%m-%d %H:%M:%OS') 	
+	#op <- options(digits.secs=2)
+	#save(d, file = paste(wd,'rdata/',aa$bird_ID[1],'_',aa$tag[1],'posix.RData',sep=''))	
+	#save(d, file = paste(wd,'rdata/','_H517_A19_2017-08-22_posix.RData',sep=''))
+	file.rename(f[i], paste(wd,'csv/', f2[i], sep = ''))	
+	print(f2[i])
+	
+	
 {# not used exception
 		if(substring(f2[i],1,4)=='Z526'){
 		d1 = fread(f[i],sep="\t",  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
