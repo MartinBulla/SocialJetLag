@@ -1,18 +1,16 @@
-# H or M
-H = TRUE
-
 {# TOOLS
 	{# define working directory
 	     #wd = "M:/Science/Projects/MC/test_data_axy4/"	
 		 #wdd=wd
-	     if(H == TRUE){wd = "H:/data/"}else{wd = "M:/Science/Projects/MC/data/"}
-	     	 #wd = "//ds/grpkempenaers/Martin/" 
-	    
+	     wd = "M:/Science/Projects/MC/data/"	
+		 #wd = "//ds/grpkempenaers/Martin/" 
+	    # wd = "H:/data/"	
+		 outdir = 'C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Output/acc'
+		 #outdir = "//ds/grpkempenaers/Martin/"
 	     wd2 = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/"	
 		 #wd2 = "//ds/grpkempenaers/Martin/"
-	}
-	{# define time
-		Sys.setenv(TZ="UTC")
+	     #wdd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/accelerometer output"	
+		 #outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/visualized/"	
 	}
 	{# load packages
 	require(xlsx)
@@ -30,7 +28,7 @@ H = TRUE
 	}
 	{# define constants
 		varnames = c("tag", "datetime_", "x", "y","z", "temp", "batt")
-		sep_ = ','#'\t'#',' #\t#
+		sep_ = '\t'#',' #\t#
 	}
 	{# load functions
 		 odba <- function(x){
@@ -48,8 +46,7 @@ H = TRUE
 			#f2=substring(f2,nchar(f2)-7,nchar(f2)-4)
 			#f2=f2[order(f2)] f2='Z697_A11_S1.csv'
    for(i in 1:length(f)){
-	d = fread(f[i],sep=sep_, stringsAsFactors = FALSE,col.names = varnames[1:5], colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
-		#col.names = varnames[1:5], colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7
+	d = fread(f[i],sep=sep_,  col.names = varnames[1:5], stringsAsFactors = FALSE, colClasses = c('character', 'POSIXct',"numeric", "numeric","numeric","numeric","numeric"), drop = 6:7)
 		#d[,batt:= as.numeric(substring(batt, 1,nchar(batt)-1))]
 		#d$batt = as.numeric(substring(d$batt, 1,nchar(d$batt)-1))
 	#if(grepl('/', d$datetime_[1])){d$datetime_ = gsub('/','-',d$datetime_)}	
@@ -64,8 +61,8 @@ H = TRUE
 	  #bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M')]
 	  if(grepl('/', bb$datetime_[1])){bb[,datetime_:= as.character(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M',tz="UTC"))]}#else{bb[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M',tz="UTC")]}
 	  
-	  bb$bird_ID=substring(f2[i],1,7)
-	  bb$tag=substring(f2[i],9,11)					
+	  bb$bird_ID=substring(f2[i],1,4)
+	  bb$tag=substring(f2[i],6,8)					
 								
 	# per second
 	  aa = d[,list(odbaX = odba(x), odbaY = odba(y),odbaZ = odba(z),  m_x = median(x), m_y = median(y), m_z = median(z)), by = . (substring(datetime_,1,19))] # cv sometimes gives NAs, so not used cv_x = cv(x, aszero = TRUE), cv_y = cv(y, aszero = TRUE), cv_z = cv(z, aszero = TRUE),
@@ -77,19 +74,17 @@ H = TRUE
 	  
 	   #aa[,datetime_:= as.POSIXct(aa$datetime_, format = '%Y-%m-%d %H:%M:%S')]#
 	   if(grepl('/', aa$datetime_[1])){aa[,datetime_:= as.character(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M:%S',tz="UTC"))]}#else{aa[,datetime_:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%S',tz="UTC")]}
-	   aa$bird_ID=substring(f2[i],1,7)
-	   aa$tag=substring(f2[i],9,11)
+	   aa$bird_ID=substring(f2[i],1,4)
+	   aa$tag=substring(f2[i],6,8)
 			
 				
-	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],13,22),"_odba.Rdata",sep=""))
+	save(aa,bb, file=paste(wd2, 'odba/to_do/',aa$bird_ID[1],'_',aa$tag[1],'_',substring(f2[i],10,19),"_odba.Rdata",sep=""))
 		rm(aa)
 		rm(bb)
 		gc()
 		
 	if(grepl('/', d$datetime_[1])){d[,datetime_:= as.character(format(as.POSIXct(datetime_, format = '%Y/%m/%d %H:%M:%OS',tz="UTC"),"%Y-%m-%d %H:%M:%OS2"))]}
-	
-	save(d, file = paste(wd,'rdata/',substring(f2[i],1,7),'_',substring(f2[i],9,11),'_',substring(f2[i],13,22),'.RData',sep=''))
-	saveRDS(d, file = paste(wd,'rdata/',substring(f2[i],1,7),'_',substring(f2[i],9,11),'_',substring(f2[i],13,22),'.rds',sep=''))
+	save(d, file = paste(wd,'rdata/',substring(f2[i],1,4),'_',substring(f2[i],6,8),'_',substring(f2[i],10,19),'.RData',sep=''))
 	 # make subset if needed
 	 #d[,datetime_1:= as.POSIXct(datetime_, format = '%Y-%m-%d %H:%M:%OS')]# for milliseconds see http://stackoverflow.com/questions/2150138/how-to-parse-milliseconds-in-r
 	 #op <- options(digits.secs=2)

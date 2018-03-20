@@ -1,3 +1,5 @@
+!!!!!visits do not match the actual data by an hour - issues with time and UTC - check datetimes in visits DB and in the files
+
 {# TOOLS
 	{# define working directory
 	     #wd = "M:/Science/Projects/MC/test_data_axy4/"	
@@ -10,7 +12,12 @@
 	     #wdd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/accelerometer output"	
 		 #outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MC/Data/visualized/"	
 	}
-	 
+	{# DB connection
+		db=paste(wd,"AVESatNIOZ/AVESatNIOZ.sqlite",sep="")
+	}
+	{# define time
+		Sys.setenv(TZ="UTC")
+	}
 	{# load packages
 	require(grid)
 	require(plyr)
@@ -19,6 +26,7 @@
 	require(latticeExtra)
 	require('XLConnect')
 	require(data.table)
+	require("RSQLite")
 	#require(bigmemory)
 	#require(biganalytics)
 	#require(bigtabulate)
@@ -94,8 +102,8 @@
 			 
 			 #dfr$act=0.8
 			 #dfr$col_='black'
-			 if(nrow(ff)>0){ff$top = min_+0.50*(max_-min_)}
-			 vv$top = ifelse(vv$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
+			
+			 vv$top = ifelse(vv$where%in%c(paste('o',1:8,sep=''),paste('w',1:7,sep='')), min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
  			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
 			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
 			 
@@ -126,8 +134,17 @@
 				ff = ff[order(ff$day, ff$s_),]
 				}
 			 }
-				
-			 sl1 = unique(c(dfr$day, ff$day))
+			
+			 if(nrow(ff)>0){ff$top = min_+0.50*(max_-min_)	
+				 # add empty lines where data missing 
+				 	xx = data.frame(day = unique(ff$day), time =0, act  = 0, stringsAsFactors=FALSE)
+					 xx$bird_ID= xx$col_= xx$tag= xx$odbaX = xx$odbaY = xx$odbaZ = xx$odba=NA
+					 xx$datetime_=as.POSIXct(xx$day, tz='UTC')
+					 dfr=rbind(dfr,xx)
+				 }	
+			 sl1 = unique(c(dfr$day))
+			 #sl1 = unique(c(dfr$day))
+			 #sl2 = unique(c(ff$day))
 			 sl1=sl1[order(sl1)]
 			 strip.left1 = function(which.panel, ...) {
 										LAB = format(sl1[which.panel], "%b-%d")
@@ -165,26 +182,28 @@
 			 panel1 = function(...) {
 					# activity
 					 dfri= dfr[which(dfr$day == sl1[panel.number()]),]
-						#dfri= dfr[which(dfr$day == sl1[22]),]
+						#dfri= dfr[which(dfr$day == sl1[21]),]
 					 if(nrow(dfri)>0){panel.xyplot(dfri$time, dfri$act, col = dfri$col_, type='h')}
+					 #xyplot(dfri$act~dfri$time, col = dfri$col_, type='h')
+					# failure/lack of data
+					 if(nrow(ff)>0){
+					 fji = ff[which(ff$day == sl1[panel.number()]),] 
+					 #fji = ff[which(ff$day == sl1[21]),] 
+					 if(nrow(fji)>0) {panel.rect(xleft=fji$s_, ybottom=min_, xright=fji$e_, ytop=fji$top, col=fji$col_, border=0)
+					}}
+					
 					# disturbance
 					 vji = vv[which(vv$day == sl1[panel.number()]),] 
 					 #vji = vv[which(vv$day == sl1[7]),] 
 					 if(nrow(vji)>0) {panel.rect(xleft=vji$s_, ybottom=min_, xright=vji$e_, ytop=vji$top, col=vji$col_, border=0)
 													}
-					# failure/lack of data
-					 if(nrow(ff)>0){
-					 fji = ff[which(ff$day == sl1[panel.number()]),] 
-					 #vji = vv[which(vv$day == sl1[7]),] 
-					 if(nrow(fji)>0) {panel.rect(xleft=fji$s_, ybottom=min_, xright=fji$e_, ytop=fji$top, col=fji$col_, border=0)
-					}}
 					
 					# 24h line 
 					 if(doubleplot == TRUE) {panel.abline(v=24,col=line24,lwd = 3)}					
 					panel.xyplot(...)
 							}
 			{# key
-				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
+				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$where, bi_$treat))),cex=0.6, col=c(wr_col)))	
 				clr_1=list(text = list(c("Bird's activity:",'Outdoors in group','Alone, constant light <0.5lux', paste('Group of', ifelse(substring(dfr$bird_ID[1],1,1) =='R', '2', '3'),  'constant light <0.5lux')),col=c(wr_col),cex=0.6),
 												points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,out_a, sing,group)))
 				
@@ -321,7 +340,7 @@
 				# signal - are data based on automated tracking?
 				# odba_: XYZ - odba/min for each of the axes, MED = median acceleration/min for each of the axes, odba_sum = odba for all axes
 				
-			 vv$top = ifelse(vv$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
+			 vv$top = ifelse(vv$where%in%c(paste('o',1:8,sep=''),paste('w',1:7,sep='')), min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
  			
 			 dfr$day = as.Date(trunc(dfr$datetime_, "day"))
 			 dfr$time = as.numeric(difftime(dfr$datetime_, trunc(dfr$datetime_,"day"), units = "hours"))
@@ -403,7 +422,7 @@
  
 				}
 			{# key
-				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$aviary, bi_$treat))),cex=0.6, col=c(wr_col)))	
+				clr_cap=list(text=list(c(dfr$bird_ID[1],unique(paste(bi_$where, bi_$treat))),cex=0.6, col=c(wr_col)))	
 				if(odba_ == 'XYZ'){clr_1=list(text = list(c('ln(odba):','X','Y','Z'),col=c(wr_col),cex=0.6),
 						points=list(pch=c(15,15,15,15),cex= c(0.8), col=c(tra,cv_x,cv_y, cv_z)))
 				}
@@ -535,27 +554,35 @@
 }					
 
 	}
-	
 	{# load metadata
 		{# disturbance
-			v = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='visits')
+			con = dbConnect(dbDriver("SQLite"),dbname = db)
+			v = dbGetQuery(con, "SELECT*FROM VISITS")  
+			dbDisconnect(con)
+		
 			v = v[!is.na(v$start) | !is.na(v$end),]
-			v$start_ = as.POSIXct(strptime(paste(v$date, substring(v$start, 12)),format ="%Y-%m-%d %H:%M:%S" ))
-				v$start_ = as.POSIXct(ifelse(v$start_>as.POSIXct('2017-10-22 01:00:00'), v$start_+60*60,v$start_),  origin = '1970-01-01 00:00.00 UTC')
+			v$start_ = as.POSIXct(v$start_)
+			v$start_ = as.POSIXct(ifelse(v$start_>=as.POSIXct('2017-10-29 03:00:00', tz = 'UTC') & v$start_<=as.POSIXct('2018-03-25 02:00:00', tz = 'UTC'), v$start_+60*60,v$start_),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
 				
-			v$end_ = as.POSIXct(strptime(paste(v$date, substring(v$end, 12)),format ="%Y-%m-%d %H:%M:%S" ))
-				v$end_ = as.POSIXct(ifelse(v$end_>as.POSIXct('2017-10-22 01:00:00'), v$end_+60*60,v$end_),  origin = '1970-01-01 00:00.00 UTC')
+			v$end_ = as.POSIXct(v$end_)
+			v$end_ = as.POSIXct(ifelse(v$end_>=as.POSIXct('2017-10-29 03:00:00', tz = 'UTC') & v$end_<=as.POSIXct('2018-03-25 02:00:00', tz = 'UTC'), v$end_+60*60,v$end_),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
 			
 			#v = v[v$aviary %in% c('w1','w2', 'w3','w4','w5','w6','w7','mud','tech','wu'),]
-			v$day = as.Date(trunc(v$date, "day"))
+			v$day = as.Date(trunc(v$start_, "day"))
 			#v = v[!is.na(v$start_) & !is.na(v$end_),]
 			v$s_ = as.numeric(difftime(v$start_, trunc(v$start_,"day"), units = "hours"))
 			v$e_ = as.numeric(difftime(v$end_, trunc(v$end_,"day"), units = "hours"))	
 		}
-		{# logger failure/lack of data
-			f_ = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='failed')
-				f_$start_ = as.POSIXct(ifelse(f_$start_>as.POSIXct('2017-10-22 01:00:00'), f_$start_+60*60,f_$start_),  origin = '1970-01-01 00:00.00 UTC')
-				f_$end_ = as.POSIXct(ifelse(f_$end_>as.POSIXct('2017-10-22 01:00:00'), f_$end_+60*60,f_$end_),  origin = '1970-01-01 00:00.00 UTC')	
+		{# logger failure/lack of data - all dateitimes are already in summer time
+				#con = dbConnect(dbDriver("SQLite"),dbname = db)
+				#v = dbGetQuery(con, "SELECT*FROM VISITS")  
+				#dbDisconnect(con)
+				
+				f_ = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='failed', colTypes = 'character')
+				f_$start_ =  as.POSIXct(f_$start_, tz = 'UTC')
+				f_$end_ =  as.POSIXct(f_$end_, tz = 'UTC')
+				#f_$start_ = as.POSIXct(ifelse(f_$start_>as.POSIXct('2017-10-22 01:00:00', tz = 'UTC'), f_$start_+60*60,f_$start_),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
+				#f_$end_ = as.POSIXct(ifelse(f_$end_>as.POSIXct('2017-10-22 01:00:00', tz = 'UTC'), f_$end_+60*60,f_$end_),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')	
 			l = list()
 			for (i in 1:nrow(f_)){
 				fi = f_[i,]
@@ -585,33 +612,40 @@
 			f$col_ = failure
 		}
 		{# birds
-			b = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='birds')
-			b$taken = as.POSIXct(paste(b$date, substring(b$taken, 12)), format ="%Y-%m-%d %H:%M:%S" )
-				b$taken = as.POSIXct(ifelse(b$taken>as.POSIXct('2017-10-22 01:00:00'), b$taken+60*60,b$taken),  origin = '1970-01-01 00:00.00 UTC')
-			b$released = as.POSIXct(ifelse(is.na(b$released), NA, paste(b$date, substring(b$released, 12))), format ="%Y-%m-%d %H:%M:%S" )
-				b$released = as.POSIXct(ifelse(b$released>as.POSIXct('2017-10-22 01:00:00'), b$released+60*60,b$released),  origin = '1970-01-01 00:00.00 UTC')
-			b$day = as.Date(trunc(b$date, "day"))
+			con = dbConnect(dbDriver("SQLite"),dbname = db)
+			b = dbGetQuery(con, "SELECT*FROM CAPTURES")  
+			dbDisconnect(con)
+			#b = readWorksheetFromFile(paste(wd, 'data_entry/SocialJetLag_DB.xlsx', sep = ''), sheet='birds')
+			b$taken = as.POSIXct(b$capture)
+				b$taken = as.POSIXct(ifelse(b$taken>=as.POSIXct('2017-10-29 03:00:00', tz = 'UTC') & b$taken<=as.POSIXct('2018-03-25 02:00:00', tz = 'UTC'), b$taken+60*60,b$taken),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
+			b$released = as.POSIXct(ifelse(is.na(b$release), NA, b$release))
+				b$released = as.POSIXct(ifelse(b$released>=as.POSIXct('2017-10-29 03:00:00', tz = 'UTC') & b$released<=as.POSIXct('2018-03-25 02:00:00', tz = 'UTC'), b$released+60*60,b$released),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
+			b$day = as.Date(trunc(b$taken, "day"))
 			#v = v[!is.na(v$start_) & !is.na(v$end_),]
 			b$s_ = as.numeric(difftime(b$taken, trunc(b$taken,"day"), units = "hours"))
 			b$e_ = as.numeric(difftime(b$released, trunc(b$released,"day"), units = "hours"))
 			b$col_ = disturb_in
-			b$where = 'in'
+			#b$where = 'in'
 			#unique(b$bird_ID[nchar(b$acc) == 3 & as.numeric(substring(b$acc,2,3))%in%c(1:10)])
 			
 		}
 		{# behavioural observations
-		   o = readWorksheetFromFile(paste(wd, 'SocialJetLag_DB.xlsx', sep = ''), sheet='activity_calibration')
-		   o$datetime_=as.POSIXct(o$datetime_)
-		   o$datetime_ = as.POSIXct(ifelse(o$datetime_>as.POSIXct('2017-10-22 01:00:00'), o$datetime_+60*60,o$datetime_),  origin = '1970-01-01 00:00.00 UTC')
-		   o = ddply(o,.(session), transform, t_e = c(datetime_[-1],NA))
+			con = dbConnect(dbDriver("SQLite"),dbname = db)
+			o = dbGetQuery(con, "SELECT*FROM CONT_OBS")  
+			dbDisconnect(con)
+		   # = readWorksheetFromFile(paste(wd, 'data_entry/SocialJetLag_DB.xlsx', sep = ''), sheet='activity_calibration')
+		   o$datetime_=as.POSIXct(as.character(o$datetime_), tz = 'UTC')
+		   o$datetime_ = as.POSIXct(ifelse(o$datetime_>=as.POSIXct('2017-10-29 03:00:00', tz = 'UTC') & o$datetime_<=as.POSIXct('2018-03-25 02:00:00', tz = 'UTC'), o$datetime_+60*60,o$datetime_),  origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
+		   o = ddply(o,.(session), transform, t_e = as.POSIXct(c(as.character(datetime_[-1]),NA),tz='UTC'))
 		   o = o[!is.na(o$t_e),]
-		   o$col_ = ifelse(o$beh%in%c('sleeping', 'resting'), sleep, active)
+		   o$col_ = ifelse(o$beh%in%c('sleep', 'rest'), sleep, active)
 		  
 		   o$day = as.Date(trunc(o$datetime_, "day"))
 		   o$s_ = as.numeric(difftime(o$datetime_, trunc(o$datetime_,"day"), units = "hours"))
 		   o$e_ = as.numeric(difftime(o$t_e, trunc(o$t_e,"day"), units = "hours"))
 		}
 	}
+	
 }
   
 {# Visualise activity/non-activity based on obda 1 / 10 min		
@@ -623,9 +657,9 @@
 		#p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=TRUE)
 		p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern='Rdata', recursive=TRUE,full.names=FALSE)
 		
-		birds = unique(substring(p2,1,4))
+		birds = unique(substring(p2,1,7))
 		
-		for(ii in 1:2){#length(birds)){
+		for(ii in 1:length(birds)){#{2){#
 		  {# make one dataset
 			p = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=TRUE)
 			p2 = list.files(path=paste(wd,'odba/to_do/', sep =''),pattern=birds[ii], recursive=TRUE,full.names=FALSE)
@@ -635,28 +669,37 @@
 			lbi = list()
 		   for(i in 1:length(p)){
 			load(p[i])
-				#odba_actogram(dfr=aa, line_=FALSE)
-			bi = b[b$bird_ID == aa$bird_ID[1] & !is.na(b$treat),]
+			bb$datetime_ = as.POSIXct(as.character(bb$datetime_),tz='UTC') #later character can be kicked out	
+			#odba_actogram(dfr=aa, line_=FALSE)
+			
+			bi = b[b$bird_ID == aa$bird_ID[1] & !is.na(b$what) & ( grepl("out_b",b$what, perl = TRUE)| grepl("single",b$what, perl = TRUE) | grepl("group",b$what, perl = TRUE) | grepl("out_a",b$what, perl = TRUE) | grepl("off",b$what, perl = TRUE) & !is.na(b$what_ID)),]
+			
+			bi$treat = ifelse(grepl("off",bi$what, perl = TRUE) & !is.na(bi$what_ID), 'off', ifelse(grepl("out_b",bi$what, perl = TRUE), "out_b", ifelse(grepl("single",bi$what, perl = TRUE), "single", ifelse(grepl("group",bi$what, perl = TRUE), "group", ifelse(grepl("out_a",bi$what, perl = TRUE), "out_a",bi$what))))) 
+			
+			bb = bb[which(bb$datetime_>=min(bi$released[grepl("on",bi$what, perl = TRUE) & bi$what_ID == bb$tag[1]])-2*60 & bb$datetime_<=max(bi$taken[bi$treat == 'off' & bi$what_ID == bb$tag[1]])),]  # limit to time before the logger was taken off the birds & limit to the released time (-2 min so that you can get calibration data in)
+			
+			
+			#bi = b[b$bird_ID == aa$bird_ID[1] & !is.na(b$what) & (grepl("out_b",b$what, perl = TRUE) | grepl("single",b$what, perl = TRUE) | grepl("group",b$what, perl = TRUE) | grepl("out_a",b$what, perl = TRUE) | grepl("off",b$what, perl = TRUE) & !is.na(b$what_ID)),]
 			bi = bi[bi$taken>bb$datetime_[1]-24*60*60,] # use only metadata relevant to this treatment (no previous treatments included) - 1 day before the file was created
-			bi$t_s = as.POSIXct(ifelse(!bi$treat%in%c('out_b', 'single', 'group', 'out_a'), as.character(bi$taken),as.character(bi$released)))
-			bi$t_e = c(bi$taken[-1],NA)
+			bi$t_s = as.POSIXct(ifelse(grepl("off",bi$treat, perl = TRUE) & !is.na(bi$what_ID), as.character(bi$taken),as.character(bi$released)), tz = 'UTC')
+			bi$t_e = as.POSIXct(c(as.character(bi$taken)[-1],NA), tz = 'UTC')
 			bi = bi[bi$treat%in%c('out_b', 'single', 'group', 'out_a'),]
 			bi$col_2 = ifelse(bi$treat%in%c('out_b', 'out_a'), out_b, ifelse(bi$treat == 'single',sing, group)) 
 			#bi$top = min_+0.25*(max_-min_)
 			#bi[,c('t_s','t_e')]
 			l = list()
 			bb$col_ =NA
-			for(k in unique(paste(bi$aviary, bi$treat))){
-				# k = unique(paste(bi$aviary, bi$treat))[1]
-				bik = bi[paste(bi$aviary, bi$treat) == k,]
-				bik$t_e = as.POSIXct(ifelse(is.na(bik$t_e), bik$t_s+60, bik$t_e), origin = '1970-01-01 00:00.00 UTC')
-				vk = v[v$aviary %in%c(bik$aviary, ifelse(bik$aviary%in%1:8, 'out', 'wu')),] # include also disturbance outside of the aviary
+			for(k in unique(paste(bi$where, bi$treat))){
+				# k = unique(paste(bi$where, bi$treat))[4]
+				bik = bi[paste(bi$where, bi$treat) == k,]
+				bik$t_e = as.POSIXct(ifelse(is.na(bik$t_e), bik$t_s+60, bik$t_e), origin = '1970-01-01 00:00.00 UTC', tz = 'UTC')
+				vk = v[v$where %in%c(bik$where[1], unique(if(bik$where[1]%in%c('out',paste('o',1:8,sep=''))){c('out')}else{c('wu','hall','front', 'back','tech','attic')})),] # includes also disturbance in the general outside or inside area 
 				l[[k]] = vk[vk$start_>= min(bik$t_s, na.rm=TRUE ) & vk$start_<= max(bik$t_e, na.rm=TRUE)| vk$end_>= min(bik$t_s, na.rm=TRUE) & vk$end_<= max(bik$t_e, na.rm=TRUE),]
 				
 				bb$col_[bb$datetime_>=min(bik$t_s, na.rm=TRUE) &  bb$datetime_<=max(bik$t_e,na.rm=TRUE)]= bik$col_2[1]
 				}
 				vj = do.call(rbind,l)
-				vj$col_ = ifelse(vj$where == 'in', disturb_in, disturb_out)
+				vj$col_ = ifelse(vj$where%in%c(paste('o',1:8,sep=''),paste('w',1:7,sep='')), disturb_in, disturb_out)
 				#vj$top = ifelse(vj$where == 'in', min_+0.25*(max_-min_), min_+0.15*(max_-min_))#ifelse(vj$where == 'in', max_, min_+0.25*(max_-min_))
 				vj = vj[!is.na(vj$day),c('where','day','s_','e_','col_')]
 				vj = rbind(vj,bi[,c('where','day','s_','e_','col_')]) # add captures
@@ -666,9 +709,13 @@
 			if(move == TRUE){file.rename(p[i], paste(wd,'odba/', p2[i], sep = ''))}
 			}
 			bb = do.call(rbind,lbb)
+			bb = bb[order(bb$datetime_),]
 			bi = do.call(rbind,lbi)
+			bi = bi[order(bi$released),]
 			vj = do.call(rbind,lvj)
-			oj = o[o$bird_ID==bb$birds[1],]
+			vj = vj[order(vj$day, vj$s_),]
+			oj = o[o$bird_ID==bb$bird_ID[1],]
+			oj = oj[order(bb$datetime_),]
 		  }	
 		  {# activity/non-activity
 			 bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ
@@ -676,7 +723,7 @@
 			 #if(bb$bird_ID[1] %in% c('Z682')){bb$odba = log(bb$odbaX+bb$odbaY+bb$odbaZ)}else{bb$odba = bb$odbaX+bb$odbaY+bb$odbaZ}
 			
 			 if(minu == '10'){
-				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16))
+				bb$datetime_ = as.POSIXct(substring(bb$datetime_, 1,16), tz = 'UTC')
 				bb = ddply(bb,.(datetime_, bird_ID, tag, col_), summarise, odba = sum(odba))	
 			 }		  
 			 #bb=bb[bb$datetime_>as.POSIXct('2017-08-17 00:00:00'),]
@@ -693,7 +740,7 @@
 			  cut_ = density (bf$odba)$x[find_peaks(-density (bf$odba)$y)[1]] # use first low as flipping point between no-activity and activity
 			#		if(bb$bird_ID[1] == 'Z682'){cut_ = density (bb$odba)$x[find_peaks(-density (bb$odba)$y)[2]]} # for Z682
 			#		if(bb$bird_ID[1] %in% c('Z546', 'Z687')){cut_ = 0.1} # for Z682
-			if(bb$bird_ID[1] %in% c('Z682', 'Z716','H745')){cut_ = 0.1}		
+			if(bb$bird_ID[1] %in% c('Z682', 'Z716','H745','Z078553')){cut_ = 0.1}		
 					bb$act = ifelse(bb$odba<cut_, 0, 1)
 					bb$col_ = ifelse(bb$odba<cut_, NA,bb$col_)
 			}		
@@ -721,17 +768,32 @@
 
 
 {# failures - start/end
+# Z080721
+	load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z080721_A04_2018-02-27_odba.Rdata")
+	tail(aa)
+# Z058101
+	load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z058101_A01_2018-02-27_odba.Rdata")
+	tail(aa)
+# Z080704
+	load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z080704_A09_2018-02-06_odba.Rdata")
+	tail(aa)
+# Z080691
+  load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z080691_A16_2018-02-20_odba.Rdata")
+   tail(aa)
+   
+
 # Z041
   load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z041_A16_2017-10-31_odba.Rdata")
-	 a = bb[bb$datetime_>as.POSIXct('2017-10-27 4:00:00') & bb$datetime_<as.POSIXct('2017-10-27 07:00:00'),]
+	 a = bb[bb$datetime_>as.POSIXct('2017-10-27 4:00:00', tz = 'UTC') & bb$datetime_<as.POSIXct('2017-10-27 07:00:00', tz = 'UTC'),]
 	 a$odbaX
 	 a[60:64,]
-	 aa[aa$datetime_>as.POSIXct('2017-10-27 05:02:00') & aa$datetime_<as.POSIXct('2017-10-27 05:03:00'),][5:10,]
+	 aa[aa$datetime_>as.POSIXct('2017-10-27 05:02:00', tz = 'UTC') & aa$datetime_<as.POSIXct('2017-10-27 05:03:00', tz = 'UTC'),][5:10,]
 # Z041
  load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z041_A13_2017-10-24_odba.Rdata")
 a = bb[bb$datetime_>as.POSIXct('2017-10-23 10:00:00') & bb$datetime_<as.POSIXct('2017-10-23 11:00:00'),]
 	 a$odbaX
-	 aa[aa$datetime_>as.POSIXct('2017-10-23 10:21:00') & aa$datetime_<as.POSIXct('2017-10-23 10:22:00'),][5:10,]
+	 a[15:25,]
+	 aa[aa$datetime_>as.POSIXct('2017-10-23 10:21:30') & aa$datetime_<as.POSIXct('2017-10-23 10:22:30'),]
 # Z682
  load("C:\\Users\\mbulla\\Documents\\Dropbox\\Science\\Projects\\MC\\Data\\odba\\to_do\\Z682_A19_2017-10-03_odba.Rdata")
  a = bb[bb$datetime_>as.POSIXct('2017-09-25 18:00:00') & bb$datetime_<as.POSIXct('2017-09-25 23:00:00'),]
